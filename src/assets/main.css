@@ -1,0 +1,14 @@
+@import './base.css';
+@import './variables.css';
+
+body {
+  background-color: var(--kitsune-light);
+  color: var(--kitsune-dark);
+}
+
+#app {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  font-weight: normal;
+}

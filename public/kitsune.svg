@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="256px" height="256px" viewBox="0 0 256 256" version="1.1" xmlns="http://www.w3.org/2000/svg">
+    <g id="kitsune-icon" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <circle id="background" fill="#FF6B00" cx="128" cy="128" r="128"></circle>
+        <path d="M128,48 C162.7,48 192.5,65.1 209.4,91.4 C209.8,92 209.6,92.8 209,93.2 C208.4,93.6 207.6,93.4 207.2,92.8 C191.2,67.9 162.5,52 128,52 C93.5,52 64.8,67.9 48.8,92.8 C48.4,93.4 47.6,93.6 47,93.2 C46.4,92.8 46.2,92 46.6,91.4 C63.5,65.1 93.3,48 128,48 Z" id="fox-ear-left" fill="#FFFFFF" fill-rule="nonzero"></path>
+        <path d="M128,48 C162.7,48 192.5,65.1 209.4,91.4 C209.8,92 209.6,92.8 209,93.2 C208.4,93.6 207.6,93.4 207.2,92.8 C191.2,67.9 162.5,52 128,52 C93.5,52 64.8,67.9 48.8,92.8 C48.4,93.4 47.6,93.6 47,93.2 C46.4,92.8 46.2,92 46.6,91.4 C63.5,65.1 93.3,48 128,48 Z" id="fox-ear-right" fill="#FFFFFF" fill-rule="nonzero" transform="translate(128.000000, 70.600000) scale(-1, 1) translate(-128.000000, -70.600000) "></path>
+        <circle id="fox-eye-left" fill="#FFFFFF" cx="90" cy="140" r="18"></circle>
+        <circle id="fox-eye-right" fill="#FFFFFF" cx="166" cy="140" r="18"></circle>
+        <circle id="fox-pupil-left" fill="#333333" cx="90" cy="140" r="8"></circle>
+        <circle id="fox-pupil-right" fill="#333333" cx="166" cy="140" r="8"></circle>
+        <path d="M128,180 C141.3,180 152,169.3 152,156 L104,156 C104,169.3 114.7,180 128,180 Z" id="fox-nose" fill="#FFFFFF"></path>
+    </g>
+</svg>
