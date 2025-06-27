@@ -1,6 +1,7 @@
 # Kitsune - Legacy
 
 Cette application a pour but de reproduire le jeu kitsune créé en Qt4 dans une version typescript
+Je n'arrivai pas à installer l'application sur l'ordinateur de mon père (ubuntu). J'ai donc décidé d'en recréer une pour qu'il puisse continuer à jouer
 
 
 ## Règles du jeu
@@ -40,3 +41,9 @@ Si le joueur trouve le compte exact, ou la meilleure approche possible si le com
 pour saisir la solution, le joueur dispose des 6 tuiles de numéro tirés ainsi que des boutons "+" , "-" , "x" et "÷"
 il peux également saisir les chiffres et signes au clavier
 
+## Expérience de coder sans coder...
+
+Afin de tester la génération de code via IA, j'ai décidé de coder cette application sans écrire une seule ligne de code.
+J'utilise Webstorm avec l'assistant version Claude 3.5 Sonnet
+
+Pour l'instant a par lancer la commande `pnpm create vite`, je n'ai utilisé que le chat de l'assistant et n'ai édité aucun autres fichier de celui ci

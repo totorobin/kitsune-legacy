@@ -1,13 +1,17 @@
 <script setup lang="ts">
 import { Solution, generateConciseExpression } from '../utils/solutionFinder';
 import { computed } from 'vue';
+import LoadingSpinner from './LoadingSpinner.vue';
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   solutions: Solution[];
   targetNumber: number;
   showSolutions: boolean;
   playerHasWon: boolean;
-}>();
+  isCalculating?: boolean;
+}>(), {
+  isCalculating: false
+});
 
 // Calcul des expressions concises pour chaque solution
 const solutionsWithExpressions = computed(() => {
@@ -21,10 +25,13 @@ const solutionsWithExpressions = computed(() => {
 const groupedSolutions = computed(() => {
   const groups = {};
 
+  // Filtrer les solutions qui utilisent plus de 6 tuiles (nombre maximum dans le jeu)
+  const validSolutions = solutionsWithExpressions.value.filter(solution => solution.tilesUsed <= 6);
+
   // S'assurer que les solutions sont uniques par leur expression concise
   const uniqueExpressions = new Map();
 
-  solutionsWithExpressions.value.forEach(solution => {
+  validSolutions.forEach(solution => {
     // N'ajouter cette solution que si son expression concise est unique
     if (!uniqueExpressions.has(solution.conciseExpression)) {
       uniqueExpressions.set(solution.conciseExpression, solution);
@@ -48,10 +55,14 @@ const groupedSolutions = computed(() => {
 <template>
   <div v-if="showSolutions" class="solutions-display">
     <h2>Solutions</h2>
-    <div v-if="solutions.length === 0" class="no-solutions">
+
+    <!-- Aucune solution trouvée (seulement si le calcul est terminé) -->
+    <div v-if="!isCalculating && solutions.length === 0" class="no-solutions">
       Aucune solution trouvée avec ces nombres.
     </div>
-    <div v-else>
+
+    <!-- Afficher les solutions quand elles sont disponibles (et le calcul est terminé) -->
+    <div v-else-if="!isCalculating && solutions.length > 0">
       <div class="best-result">
         <p v-if="solutions[0].distance === 0">
           <strong>Résultat exact :</strong> {{ targetNumber }}
@@ -113,6 +124,20 @@ h2 {
 
 .no-solutions {
   color: #333333;
+  font-style: italic;
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 0;
+}
+
+.loading-info {
+  margin-top: 10px;
+  font-size: 14px;
+  color: #666;
   font-style: italic;
 }
 

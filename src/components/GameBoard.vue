@@ -1,6 +1,6 @@
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { Tile, Operator, MAX_TIME, GameResult } from '../types/game';
 import { generateRandomTiles, generateTargetNumber, performOperation } from '../utils/gameLogic';
 import { findSolutions, getTopSolutions, Solution } from '../utils/solutionFinder';
@@ -12,6 +12,8 @@ import OperatorsPanel from './OperatorsPanel.vue';
 import ExpressionDisplay from './ExpressionDisplay.vue';
 import VictoryOverlay from './VictoryOverlay.vue';
 import SolutionsDisplay from './SolutionsDisplay.vue';
+import KeyboardHelp from './KeyboardHelp.vue';
+import CalculatingOverlay from './CalculatingOverlay.vue';
 
 // État du jeu
 const tiles = ref<Tile[]>([]);
@@ -25,6 +27,10 @@ const gameResult = ref<GameResult>(GameResult.IN_PROGRESS);
 const showNewGameButton = ref(false);
 const showSolutions = ref(false);
 const solutions = ref<Solution[]>([]);
+
+// État pour l'affichage des raccourcis clavier
+const showKeyboardShortcuts = ref(true); // Par défaut, afficher les raccourcis
+const isTouchDevice = ref(false); // Détection des appareils tactiles
 
 // État de l'opération en cours
 const firstOperand = ref<Tile | null>(null);
@@ -50,13 +56,23 @@ const startTimer = () => {
   }, 1000);
 };
 
+// État pour le chargement des solutions
+const isCalculatingSolutions = ref(false);
+
 // Calculer toutes les solutions possibles
 const calculateSolutions = () => {
+  // Activer l'indicateur de chargement et afficher le conteneur de solutions
+  isCalculatingSolutions.value = true;
+  showSolutions.value = true;
+  solutions.value = []; // Vider les solutions précédentes pendant le calcul
+
   // Utiliser seulement les tuiles initiales (ID < 6) pour chercher les solutions
   const initialTiles = tiles.value.filter(tile => tile.id < 6);
 
-  // Trouver toutes les solutions possibles
-  const allSolutions = findSolutions(initialTiles, targetNumber.value);
+  // Utiliser setTimeout pour ne pas bloquer l'interface pendant le calcul
+  setTimeout(() => {
+    // Trouver toutes les solutions possibles
+    const allSolutions = findSolutions(initialTiles, targetNumber.value);
 
   // Prendre les 5 meilleures solutions
   solutions.value = getTopSolutions(allSolutions, 5);
@@ -80,14 +96,16 @@ const calculateSolutions = () => {
     // Aucune solution trouvée ou le joueur n'a pas obtenu de résultat
     gameResult.value = GameResult.LOSS;
   }
-
-  // Afficher les solutions
-  showSolutions.value = true;
+  // Les solutions sont déjà affichées (showSolutions a été activé avant le calcul)
 
   // Afficher le bouton nouvelle partie
   setTimeout(() => {
     showNewGameButton.value = true;
   }, 3000);
+
+  // Désactiver l'indicateur de chargement
+  isCalculatingSolutions.value = false;
+  });
 };
 
 // Démarrer une nouvelle partie
@@ -124,6 +142,74 @@ const handleOperatorInput = (value: string) => {
     tiles.value = tiles.value.filter(tile => tile.id < 6);
     tiles.value.forEach(tile => tile.isSelected = false);
     bestPlayerResult.value = null;
+    return;
+  }
+
+  if (value === 'U') {
+    // Annuler la dernière opération
+    if (operationsHistory.value.length > 0) {
+      // Supprimer la dernière entrée d'historique
+      operationsHistory.value.pop();
+
+      // Récupérer toutes les tuiles initiales (ID < 6)
+      const initialTiles = tiles.value.filter(tile => tile.id < 6);
+
+      // Réinitialiser l'état de sélection des tuiles initiales
+      initialTiles.forEach(tile => tile.isSelected = false);
+
+      // Si on n'a plus aucune opération, on garde juste les tuiles initiales
+      if (operationsHistory.value.length === 0) {
+        tiles.value = initialTiles;
+        bestPlayerResult.value = null;
+      } else {
+        // Sinon, on recalcule toutes les opérations à partir des tuiles initiales
+        // en répétant chaque opération sauf la dernière
+        tiles.value = [...initialTiles]; // Commencer avec les tuiles initiales
+        let currentNextId = 6;
+
+        // Parcourir l'historique et recréer les tuiles résultantes
+        for (const opText of operationsHistory.value) {
+          // Extraire les valeurs de l'opération (format: "a op b = result")
+          const match = opText.match(/(\d+\.?\d*)\s*([+\-×÷])\s*(\d+\.?\d*)\s*=\s*(\d+\.?\d*)/);
+          if (match) {
+            const [, leftVal, op, rightVal, resultVal] = match;
+
+            // Marquer les tuiles utilisées comme sélectionnées
+            const leftTile = tiles.value.find(t => t.value === parseFloat(leftVal) && !t.isSelected);
+            const rightTile = tiles.value.find(t => t.value === parseFloat(rightVal) && !t.isSelected);
+
+            if (leftTile && rightTile) {
+              leftTile.isSelected = true;
+              rightTile.isSelected = true;
+
+              // Créer une nouvelle tuile avec le résultat
+              const newTile: Tile = {
+                id: currentNextId++,
+                value: parseFloat(resultVal),
+                isSelected: false
+              };
+
+              // Ajouter la nouvelle tuile
+              tiles.value.push(newTile);
+
+              // Mettre à jour le meilleur résultat obtenu
+              const distance = Math.abs(newTile.value - targetNumber.value);
+              if (bestPlayerResult.value === null || distance < Math.abs(bestPlayerResult.value - targetNumber.value)) {
+                bestPlayerResult.value = newTile.value;
+              }
+            }
+          }
+        }
+
+        // Mettre à jour l'ID pour les nouvelles tuiles
+        nextId.value = currentNextId;
+      }
+
+      // Réinitialiser l'expression courante
+      expression.value = '';
+      firstOperand.value = null;
+      operator.value = null;
+    }
     return;
   }
 
@@ -206,11 +292,98 @@ const showGameElements = computed(() => {
   return gameStarted.value || showSolutions.value;
 });
 
-// Nettoyage du timer
+// Gestionnaire d'événements pour les touches du clavier
+const handleKeydown = (event: KeyboardEvent) => {
+  if (!gameStarted.value) return;
+
+  // Gestion des touches numériques (1-9, 0)
+  if (/^[0-9]$/.test(event.key)) {
+    const numericValue = parseInt(event.key);
+    // Cas spécial pour la touche 0 qui doit sélectionner une tuile 10
+    const tileValue = numericValue === 0 ? 10 : numericValue;
+    // Chercher une tuile non sélectionnée avec cette valeur
+    const matchingTile = tiles.value.find(tile => 
+      tile.value === tileValue && !tile.isSelected
+    );
+
+    if (matchingTile) {
+      handleTileClick(matchingTile);
+    }
+  }
+
+  // Gestion des touches spéciales pour 25, 50, 75, 100
+  if (event.key === 'a' || event.key === 'A') { // Pour 25
+    const tile25 = tiles.value.find(tile => tile.value === 25 && !tile.isSelected);
+    if (tile25) handleTileClick(tile25);
+  }
+  if (event.key === 'z' || event.key === 'Z') { // Pour 50
+    const tile50 = tiles.value.find(tile => tile.value === 50 && !tile.isSelected);
+    if (tile50) handleTileClick(tile50);
+  }
+  if (event.key === 'e' || event.key === 'E') { // Pour 75
+    const tile75 = tiles.value.find(tile => tile.value === 75 && !tile.isSelected);
+    if (tile75) handleTileClick(tile75);
+  }
+  if (event.key === 'r' || event.key === 'R') { // Pour 100
+    const tile100 = tiles.value.find(tile => tile.value === 100 && !tile.isSelected);
+    if (tile100) handleTileClick(tile100);
+  }
+
+  // Gestion des touches pour les tuiles résultats (f, g, h, j, k, l, m)
+  // Ces touches permettent de sélectionner les tuiles résultats en fonction de l'ordre de création
+  const resultKeyMap = ['f', 'g', 'h', 'j', 'k', 'l', 'm'];
+  const lowerKey = event.key.toLowerCase();
+
+  if (resultKeyMap.includes(lowerKey)) {
+    // Trouver l'index de la touche dans le tableau des touches de résultat
+    const keyIndex = resultKeyMap.indexOf(lowerKey);
+
+    // Obtenir toutes les tuiles résultats (ID >= 6) qui ne sont pas sélectionnées
+    const resultTiles = tiles.value.filter(tile => tile.id >= 6 && !tile.isSelected);
+
+    // Si nous avons suffisamment de tuiles résultats
+    if (keyIndex < resultTiles.length) {
+      // Trier les tuiles par ID pour maintenir l'ordre de création
+      const sortedResultTiles = resultTiles.sort((a, b) => a.id - b.id);
+      // Sélectionner la tuile correspondante
+      handleTileClick(sortedResultTiles[keyIndex]);
+    }
+  }
+
+  // Gestion des opérateurs
+  if (event.key === '+') {
+    handleOperatorInput('+');
+  } else if (event.key === '-') {
+    handleOperatorInput('-');
+  } else if (event.key === '*' || event.key === 'x' || event.key === 'X') {
+    handleOperatorInput('×');
+  } else if (event.key === '/' || event.key === ':') {
+    handleOperatorInput('÷');
+  } else if (event.key === 'c' || event.key === 'C') {
+    handleOperatorInput('C');
+  } else if (event.key === 'Backspace' || event.key === 'u' || event.key === 'U') {
+    handleOperatorInput('U');
+  }
+};
+
+// Fonction pour basculer l'affichage des raccourcis clavier
+const toggleKeyboardShortcuts = () => {
+  showKeyboardShortcuts.value = !showKeyboardShortcuts.value;
+};
+
+// Ajout et suppression des écouteurs d'événements
 onMounted(() => {
-  return () => {
-    if (timer.value) clearInterval(timer.value);
-  };
+  window.addEventListener('keydown', handleKeydown);
+
+  // Détection des appareils tactiles
+  isTouchDevice.value = ('ontouchstart' in window) || 
+                        (navigator.maxTouchPoints > 0) || 
+                        (navigator.msMaxTouchPoints > 0);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeydown);
+  if (timer.value) clearInterval(timer.value);
 });
 </script>
 
@@ -225,14 +398,29 @@ onMounted(() => {
     <VictoryOverlay 
       :gameResult="gameResult"
       :showNewGameButton="showNewGameButton"
+      :solutions="solutions"
+      :targetNumber="targetNumber"
       @new-game="startNewGame"
+      @close-overlay="gameResult = GameResult.IN_PROGRESS"
+    />
+
+    <CalculatingOverlay
+      :isCalculating="isCalculatingSolutions"
     />
 
     <div class="game-area">
+      <!-- Bouton pour afficher/masquer les raccourcis clavier (visible uniquement sur desktop) -->
+      <div v-if="!isTouchDevice && gameStarted" class="shortcuts-toggle">
+        <button @click="toggleKeyboardShortcuts" class="toggle-btn">
+          {{ showKeyboardShortcuts ? 'Masquer raccourcis' : 'Afficher raccourcis' }}
+        </button>
+      </div>
+
       <TilesGrid 
         :tiles="tiles"
         :gameStarted="gameStarted"
         :showGameElements="showGameElements"
+        :showKeyboardShortcuts="showKeyboardShortcuts && !isTouchDevice"
         @tile-click="handleTileClick"
       />
 
@@ -240,6 +428,7 @@ onMounted(() => {
         :gameStarted="gameStarted"
         :hasFirstOperand="!!firstOperand"
         :showGameElements="showGameElements"
+        :showKeyboardShortcuts="showKeyboardShortcuts && !isTouchDevice"
         @operator-click="handleOperatorInput"
       />
 
@@ -254,10 +443,11 @@ onMounted(() => {
         :targetNumber="targetNumber"
         :showSolutions="showSolutions"
         :playerHasWon="gameResult === GameResult.EXACT_WIN || gameResult === GameResult.BEST_WIN"
+        :isCalculating="isCalculatingSolutions"
       />
 
       <button class="start-button" @click="startNewGame">
-        {{ gameStarted ? 'Nouvelle partie' : 'Commencer' }}
+        Nouvelle partie
       </button>
     </div>
   </div>
@@ -265,7 +455,7 @@ onMounted(() => {
 
 <style scoped>
 .game-board {
-  max-width: 600px;
+  max-width: 700px;
   margin: 0 auto;
   padding: 20px;
   position: relative;
@@ -296,5 +486,47 @@ onMounted(() => {
   background: var(--kitsune-dark-orange);
   transform: translateY(-2px);
   box-shadow: 0 5px 10px rgba(0, 0, 0, 0.3);
+}
+
+.shortcuts-toggle {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 5px;
+}
+
+.toggle-btn {
+  font-size: 14px;
+  padding: 6px 12px;
+  background-color: var(--kitsune-light);
+  border: 1px solid var(--kitsune-orange);
+  color: var(--kitsune-dark);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.toggle-btn:hover {
+  background-color: var(--kitsune-orange-light);
+}
+
+/* Styles responsifs pour mobile */
+@media (max-width: 480px) {
+  .game-board {
+    padding: 10px;
+    margin: 0;
+    border-radius: 0;
+    max-width: 100%;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .game-area {
+    gap: 10px;
+  }
+
+  .start-button {
+    padding: 12px;
+    font-size: 16px;
+  }
 }
 </style>

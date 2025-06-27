@@ -18,3 +18,11 @@ export enum GameResult {
 
 // Constantes du jeu
 export const MAX_TIME = 40; // Temps maximum en secondes
+
+// Mapping des touches spéciales pour les tuiles avec des valeurs > 10
+export const SPECIAL_KEY_MAPPING = {
+  'a': 25,  // Touche A pour 25
+  'z': 50,  // Touche Z pour 50
+  'e': 75,  // Touche E pour 75
+  'r': 100   // Touche R pour 100
+};

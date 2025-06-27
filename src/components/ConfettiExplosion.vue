@@ -117,6 +117,13 @@ onMounted(() => {
   }
 }
 
+.confetti-container.fullscreen {
+  position: fixed;
+  width: 100vw;
+  height: 100vh;
+  z-index: 1001;
+}
+
 @keyframes spin {
   from {
     transform: rotate(0deg);

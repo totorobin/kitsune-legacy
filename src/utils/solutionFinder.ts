@@ -6,6 +6,10 @@ export interface Solution {
   operations: string[];
   result: number;
   distance: number; // Distance par rapport à la cible
+  expression?: string; // Expression mathématique formatée avec parenthèses
+  tilesUsed?: number;
+  tilesIds?: number[];
+  signatureKey?: string;
 }
 
 // Fonction pour trouver toutes les solutions possibles
@@ -21,18 +25,23 @@ export function findSolutions(tiles: Tile[], targetNumber: number): Solution[] {
     remainingTiles: Tile[],
     currentResult: number | null,
     operations: string[] = [],
-    usedTiles: number[] = []
+    usedTiles: number[] = [],
+    parentExpression: string = ''
   ) {
     // Si nous avons utilisé toutes les tuiles ou au moins une et obtenu un résultat
     if (currentResult !== null && (remainingTiles.length === 0 || usedTiles.length > 0)) {
       // Ajouter cette solution
       const distance = Math.abs(currentResult - targetNumber);
+      // Formatage de l'expression pour qu'elle soit plus lisible
+      const formattedExpression = parentExpression ? parentExpression.trim() : String(currentResult);
+
       solutions.push({
         operations,
         result: currentResult,
         distance,
         tilesUsed: 0, // Sera calculé plus tard
-        tilesIds: [...usedTiles].sort((a, b) => a - b) // Stocker les IDs des tuiles triés
+        tilesIds: [...usedTiles].sort((a, b) => a - b), // Stocker les IDs des tuiles triés
+        expression: formattedExpression
       });
     }
 
@@ -50,7 +59,8 @@ export function findSolutions(tiles: Tile[], targetNumber: number): Solution[] {
             newRemaining, 
             tile.value, 
             [`Départ avec ${tile.value}`], 
-            [tile.id]
+            [tile.id],
+            String(tile.value)
           );
         }
       } else {
@@ -67,12 +77,101 @@ export function findSolutions(tiles: Tile[], targetNumber: number): Solution[] {
             // Vérifier si l'opération est valide (pas de division par zéro, etc.)
             if (!isNaN(result)) {
               const operationText = `${currentResult} ${op} ${tile.value} = ${result}`;
+              // Assurer un formatage cohérent pour l'expression
+              const newExpression = parentExpression ? `${parentExpression.trim()} ${op} ${tile.value}` : `${currentResult} ${op} ${tile.value}`;
               findCombinations(
                 newRemaining, 
                 result, 
                 [...operations, operationText], 
-                [...usedTiles, tile.id]
+                [...usedTiles, tile.id],
+                newExpression
               );
+            }
+          }
+        }
+
+        // Explorer les combinaisons qui combinent des résultats intermédiaires
+        // C'est la partie qui manquait pour trouver des solutions comme (((50×2)+4)×7)-8
+        if (remainingTiles.length >= 2) {
+          // Créer des sous-groupes de tuiles pour explorer les parenthèses imbriquées
+          for (let i = 1; i < remainingTiles.length; i++) {
+            const subgroup = remainingTiles.slice(0, i);
+            const restOfTiles = remainingTiles.slice(i);
+
+            // Récursivement explorer toutes les combinaisons possibles dans ce sous-groupe
+            const subResults: { result: number, ops: string[], used: number[], expr: string }[] = [];
+
+            // Fonction récursive pour trouver les résultats intermédiaires
+            function findSubResults(
+              subTiles: Tile[],
+              subResult: number | null,
+              subOps: string[] = [],
+              subUsed: number[] = [],
+              subExpr: string = ''
+            ) {
+              if (subResult !== null && subUsed.length > 0) {
+                subResults.push({
+                  result: subResult,
+                  ops: subOps,
+                  used: subUsed,
+                  expr: subExpr
+                });
+              }
+
+              if (subResult === null) {
+                for (let j = 0; j < subTiles.length; j++) {
+                  const tile = subTiles[j];
+                  const newSubTiles = [...subTiles];
+                  newSubTiles.splice(j, 1);
+                  findSubResults(newSubTiles, tile.value, [`Départ avec ${tile.value}`], [tile.id], String(tile.value));
+                }
+              } else if (subTiles.length > 0) {
+                for (let j = 0; j < subTiles.length; j++) {
+                  const tile = subTiles[j];
+                  const newSubTiles = [...subTiles];
+                  newSubTiles.splice(j, 1);
+
+                  for (const op of operators) {
+                    const r = performOperation(subResult, op, tile.value);
+                    if (!isNaN(r)) {
+                      const opText = `${subResult} ${op} ${tile.value} = ${r}`;
+                      const newSubExpr = `${subExpr} ${op} ${tile.value}`;
+                      findSubResults(newSubTiles, r, [...subOps, opText], [...subUsed, tile.id], newSubExpr);
+                    }
+                  }
+                }
+              }
+            }
+
+            findSubResults([...subgroup], null);
+
+            // Utiliser chaque résultat intermédiaire avec le reste des tuiles
+            for (const subResult of subResults) {
+              // Vérifier que ce sous-résultat utilise au moins 2 tuiles
+              if (subResult.used.length >= 2) {
+                const newRemaining = [...restOfTiles];
+                const allUsedIds = new Set([...usedTiles, ...subResult.used]);
+
+                // Essayer tous les opérateurs avec ce résultat intermédiaire
+                for (const op of operators) {
+                  const combinedResult = performOperation(currentResult, op, subResult.result);
+
+                  if (!isNaN(combinedResult)) {
+                    // Formater proprement l'expression avec parenthèses
+                    const subExprFormatted = subResult.expr.trim();
+                    const combinedOpText = `${currentResult} ${op} (${subExprFormatted}) = ${combinedResult}`;
+                    const newExpr = parentExpression ? `${parentExpression.trim()} ${op} (${subExprFormatted})` : `${currentResult} ${op} (${subExprFormatted})`;
+
+                    findCombinations(
+                      newRemaining,
+                      combinedResult,
+                      [...operations, combinedOpText, ...subResult.ops],
+                      Array.from(allUsedIds),
+                      newExpr
+                    );
+                  }
+                }
+              }
             }
           }
         }
@@ -99,12 +198,15 @@ function filterDuplicateSolutions(solutions: Solution[]): Solution[] {
   // - le résultat final
   // - les ID des tuiles utilisées (déjà triés)
   // - le nombre d'opérations
+  // - l'expression mathématique (pour capturer les différentes façons d'atteindre le même résultat)
   solutions.forEach(solution => {
-    // Calculer le nombre de tuiles utilisées
-    solution.tilesUsed = solution.operations.length > 0 ? solution.operations.length : 1;
+    // Calculer le nombre de tuiles utilisées correctement à partir des IDs de tuiles
+    solution.tilesUsed = solution.tilesIds?.length || 0;
 
     // Créer une clé unique pour cette solution
-    solution.signatureKey = `${solution.result}_${solution.tilesIds?.join('.')}_${solution.tilesUsed}`;
+    // Inclure l'expression pour différencier les solutions utilisant les mêmes tuiles
+    // mais avec différentes configurations de parenthèses
+    solution.signatureKey = `${solution.result}_${solution.tilesIds?.join('.')}_${solution.expression}`;
   });
 
   // Utiliser un Map pour garder une seule solution par signature
@@ -160,6 +262,29 @@ export function getTopSolutions(solutions: Solution[], limit: number = 5): Solut
   return uniqueSolutions.slice(0, limit);
 }
 
+// Fonction pour valider qu'une expression mathématique est correcte
+function validateMathExpression(expression: string, expectedResult: number): boolean {
+  try {
+    // Remplacer les symboles × et ÷ par * et / pour l'évaluation
+    const evalReady = expression
+      .replace(/×/g, '*')
+      .replace(/÷/g, '/');
+
+    // Évaluer l'expression (attention: eval est utilisé ici pour la validation uniquement)
+    const result = eval(evalReady);
+
+    // Arrondir à 2 décimales pour gérer les imprécisions de calcul flottant
+    const roundedResult = Math.round(result * 100) / 100;
+    const roundedExpected = Math.round(expectedResult * 100) / 100;
+
+    return roundedResult === roundedExpected;
+  } catch (e) {
+    // En cas d'erreur, l'expression est considérée comme invalide
+    console.error("Erreur de validation d'expression:", expression, e);
+    return false;
+  }
+}
+
 // Fonction pour générer une expression mathématique concise à partir des opérations
 export function generateConciseExpression(operations: string[]): string {
   if (operations.length === 0) return '';
@@ -168,78 +293,182 @@ export function generateConciseExpression(operations: string[]): string {
   const firstValueMatch = operations[0].match(/Départ avec (\d+)/);
   if (!firstValueMatch) return '';
 
-  let firstValue = firstValueMatch[1];
-  let currentResult = firstValue;
-
-  // Structure pour stocker les termes et opérateurs
-  type Term = {
-    value: string;
-    // 1: haute priorité (× et ÷), 0: basse priorité (+ et -)
-    priority: number;
-    operator?: string;
+  // Extraire les opérations et leurs résultats dans un format plus structuré
+  type Operation = {
+    leftOperand: number;
+    operator: string;
+    rightOperand: number;
+    result: number;
   };
 
-  let terms: Term[] = [{ value: firstValue, priority: 0 }];
-  let lastOperator = '';
+  const parsedOperations: Operation[] = [];
 
-  // Parcourir les opérations pour construire l'expression
+  // Analyser chaque opération
   for (let i = 1; i < operations.length; i++) {
     const op = operations[i];
     const match = op.match(/(\d+\.?\d*) ([+\-×÷]) (\d+\.?\d*) = (\d+\.?\d*)/);
     if (!match) continue;
 
-    // Extraire les parties de l'opération
-    const operator = match[2];
-    const operand = match[3];
-    currentResult = match[4];
+    parsedOperations.push({
+      leftOperand: parseFloat(match[1]),
+      operator: match[2],
+      rightOperand: parseFloat(match[3]),
+      result: parseFloat(match[4])
+    });
+  }
 
-    // Déterminer la priorité de l'opérateur
-    const priority = (operator === '×' || operator === '÷') ? 1 : 0;
+  // Si aucune opération valide n'a été trouvée, retourner juste la valeur initiale
+  if (parsedOperations.length === 0) {
+    return firstValueMatch[1];
+  }
 
-    // Si nous avons besoin de parenthèses
-    const needsParentheses = terms.length > 1 && (
-      // Si l'opérateur actuel est de priorité supérieure à l'opérateur précédent
-      (lastOperator && priority > (operator === '×' || operator === '÷' ? 1 : 0)) ||
-      // Ou si nous changeons de type d'opération avec les mêmes priorités
-      (lastOperator && priority === 0 && (lastOperator === '+' || lastOperator === '-') && (operator === '-')) ||
-      // Ou si nous passons d'une opération de haute priorité à une opération de basse priorité
-      (lastOperator && (lastOperator === '×' || lastOperator === '÷') && (operator === '+' || operator === '-'))
-    );
+  // Analyser la séquence d'opérations pour déterminer les priorités et groupements
+  // Structure de données pour représenter un nœud dans l'arbre d'expression
+  type ExprNode = {
+    value: number | ExprNode[];
+    operator?: string;
+    isGrouped?: boolean;
+  };
 
-    // Mise à jour des termes
-    if (needsParentheses) {
-      // Créer une expression avec parenthèses
-      let innerExpr = terms.map(t => t.value + (t.operator || '')).join('');
-      // Supprimer le dernier opérateur s'il existe
-      innerExpr = innerExpr.replace(/[+\-×÷]$/, '');
+  // Construire un arbre d'opérations pour représenter l'expression
+  let root: ExprNode = { value: parseFloat(firstValueMatch[1]) };
 
-      // Réinitialiser les termes avec l'expression parenthésée
-      terms = [{ 
-        value: `(${innerExpr})`, 
-        priority: priority,
-        operator: operator
-      }];
-    } else {
-      // Mettre à jour l'opérateur du dernier terme
-      if (terms.length > 0) {
-        terms[terms.length - 1].operator = operator;
+  // Parcourir toutes les opérations pour construire l'arbre
+  for (const op of parsedOperations) {
+    const isHighPriority = op.operator === '×' || op.operator === '÷';
+
+    // Si l'opération actuelle est de haute priorité (× ou ÷)
+    if (isHighPriority) {
+      // Si le nœud racine est un nombre simple
+      if (typeof root.value === 'number') {
+        root = {
+          value: [root, { value: op.rightOperand }],
+          operator: op.operator
+        };
+      } 
+      // Si le nœud racine est déjà un groupe
+      else {
+        // Vérifier l'opérateur du groupe actuel
+        if (root.operator === '+' || root.operator === '-') {
+          // Grouper l'expression précédente et créer une nouvelle racine
+          root = {
+            value: [{ value: root.value, operator: root.operator, isGrouped: true }, { value: op.rightOperand }],
+            operator: op.operator
+          };
+        } else {
+          // Ajouter au groupe existant de même priorité
+          (root.value as ExprNode[]).push({ value: op.rightOperand });
+          root.operator = op.operator;
+        }
+      }
+    }
+    // Si l'opération actuelle est de basse priorité (+ ou -)
+    else {
+      // Si le nœud racine est un nombre simple
+      if (typeof root.value === 'number') {
+        root = {
+          value: [root, { value: op.rightOperand }],
+          operator: op.operator
+        };
+      }
+      // Si le nœud racine est déjà un groupe
+      else {
+        // Si l'opérateur actuel a la même priorité que l'opérateur du groupe
+        if (root.operator === '+' || root.operator === '-') {
+          // Ajouter au groupe existant
+          (root.value as ExprNode[]).push({ value: op.rightOperand });
+          root.operator = op.operator;
+        } else {
+          // Créer un nouveau groupe avec l'expression précédente comme premier élément
+          root = {
+            value: [root, { value: op.rightOperand }],
+            operator: op.operator
+          };
+        }
+      }
+    }
+  }
+
+  // Fonction récursive pour convertir l'arbre d'expression en chaîne de caractères
+  function nodeToString(node: ExprNode): string {
+    if (typeof node.value === 'number') {
+      return node.value.toString();
+    }
+
+    // Pour un groupe d'expressions
+    const expressions = (node.value as ExprNode[]).map(n => nodeToString(n));
+    let result = expressions.join(` ${node.operator} `);
+
+    // Ajouter des parenthèses si nécessaire
+    if (node.isGrouped) {
+      result = `(${result})`;
+    }
+
+    return result;
+  }
+
+  // Générer une expression à partir de l'arbre
+  let expression = nodeToString(root);
+
+  // Pour les expressions complexes, analyser s'il faut ajouter des parenthèses
+  // supplémentaires pour les opérations de multiplication et division
+  if (parsedOperations.length >= 2) {
+    // Trouver les séquences d'opérations de même priorité
+    let hasAddSubSequence = false;
+    let hasMultDivAfterAddSub = false;
+
+    for (let i = 0; i < parsedOperations.length - 1; i++) {
+      const op = parsedOperations[i];
+      const nextOp = parsedOperations[i + 1];
+
+      // Séquence d'additions/soustractions suivie par multiplication/division
+      if ((op.operator === '+' || op.operator === '-') && 
+          (nextOp.operator === '×' || nextOp.operator === '÷')) {
+        hasAddSubSequence = true;
+        hasMultDivAfterAddSub = true;
       }
     }
 
-    // Ajouter le nouveau terme
-    terms.push({
-      value: operand,
-      priority: priority
-    });
+    // Si nous avons une séquence add/sub suivie de mult/div, nous devons regrouper
+    // les opérations add/sub avec des parenthèses
+    if (hasAddSubSequence && hasMultDivAfterAddSub) {
+      // Chercher où commencent les opérations de multiplication/division
+      let multDivIndex = -1;
+      for (let i = 0; i < parsedOperations.length; i++) {
+        if (parsedOperations[i].operator === '×' || parsedOperations[i].operator === '÷') {
+          multDivIndex = i;
+          break;
+        }
+      }
 
-    lastOperator = operator;
+      // Si nous avons trouvé une telle séquence, reconstruire l'expression
+      if (multDivIndex > 0) {
+        // Première partie: opérations d'addition/soustraction
+        let leftPart = firstValueMatch[1];
+        for (let i = 0; i < multDivIndex; i++) {
+          leftPart += ` ${parsedOperations[i].operator} ${parsedOperations[i].rightOperand}`;
+        }
+
+        // Construire la partie droite (mult/div et après)
+        let rightPart = '';
+        for (let i = multDivIndex; i < parsedOperations.length; i++) {
+          if (i === multDivIndex) {
+            rightPart = `${parsedOperations[i].operator} ${parsedOperations[i].rightOperand}`;
+          } else {
+            rightPart += ` ${parsedOperations[i].operator} ${parsedOperations[i].rightOperand}`;
+          }
+        }
+
+        // Combinaison avec parenthèses appropriées
+        expression = `(${leftPart}) ${rightPart}`;
+      }
+    }
   }
 
-  // Construire l'expression finale
-  const finalExpression = terms.map(t => t.value + (t.operator || '')).join('');
-  // Supprimer le dernier opérateur s'il existe
-  const cleanExpression = finalExpression.replace(/[+\-×÷]$/, '');
+  // Retourner l'expression avec le résultat final
+  const finalResult = parsedOperations.length > 0 ? 
+    parsedOperations[parsedOperations.length - 1].result : 
+    parseFloat(firstValueMatch[1]);
 
-  // Retourner l'expression complète avec le résultat
-  return `${cleanExpression} = ${currentResult}`;
+  return `${expression} = ${finalResult}`;
 }

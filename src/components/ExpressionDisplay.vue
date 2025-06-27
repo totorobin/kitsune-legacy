@@ -44,4 +44,26 @@ defineProps<{
   border-top: 1px solid #ddd;
   padding-top: 8px;
 }
+
+/* Styles responsifs pour mobile */
+@media (max-width: 480px) {
+  .expression {
+    padding: 10px;
+    min-height: 90px;
+    max-height: 150px;
+  }
+
+  .history-item {
+    font-size: 14px;
+    margin-bottom: 3px;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  .current-expression {
+    font-size: 20px;
+    padding-top: 5px;
+    margin-top: 5px;
+  }
+}
 </style>
