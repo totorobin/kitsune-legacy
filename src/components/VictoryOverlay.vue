@@ -2,7 +2,7 @@
 import ConfettiExplosion from './ConfettiExplosion.vue';
 import { GameResult } from '../types/game';
 import { Solution, generateConciseExpression } from '../utils/solutionFinder';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 const props = defineProps<{
   gameResult: GameResult;
@@ -18,6 +18,13 @@ const emit = defineEmits<{
 
 // État pour contrôler la visibilité de l'overlay
 const visible = ref(true);
+
+// Réinitialiser visible à true quand gameResult change de IN_PROGRESS à autre chose
+watch(() => props.gameResult, (newValue, oldValue) => {
+  if (newValue !== GameResult.IN_PROGRESS && oldValue === GameResult.IN_PROGRESS) {
+    visible.value = true;
+  }
+});
 
 const startNewGame = () => {
   emit('new-game');

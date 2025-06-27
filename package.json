@@ -6,16 +6,37 @@
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:cucumber": "cucumber-js",
+    "cypress:open": "cypress open",
+    "cypress:run": "cypress run"
   },
   "dependencies": {
     "vue": "^3.5.17"
   },
   "devDependencies": {
+    "@badeball/cypress-cucumber-preprocessor": "^18.0.6",
+    "@cucumber/cucumber": "^10.3.1",
+    "@cypress/webpack-preprocessor": "^6.0.0",
     "@vitejs/plugin-vue": "^6.0.0",
     "@vue/tsconfig": "^0.7.0",
+    "cypress": "^13.6.2",
+    "jsdom": "^26.1.0",
+    "ts-loader": "^9.5.1",
+    "ts-node": "^10.9.2",
     "typescript": "~5.8.3",
     "vite": "^7.0.0",
-    "vue-tsc": "^2.2.10"
+    "vitest": "^3.2.4",
+    "vue-tsc": "^2.2.10",
+    "webpack": "^5.89.0"
+  },
+  "cypress-cucumber-preprocessor": {
+    "stepDefinitions": [
+      "tests/e2e/step_definitions/**/*.{js,ts}"
+    ],
+    "filterSpecs": true,
+    "omitFiltered": true
   }
 }

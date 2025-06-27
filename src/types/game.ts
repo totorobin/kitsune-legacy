@@ -8,6 +8,9 @@ export interface Tile {
 
 export type Operator = '+' | '-' | '×' | '÷';
 
+// Types pour les modes de jeu
+export type GameMode = 'auto' | 'manual';
+
 // État des résultats du jeu
 export enum GameResult {
   IN_PROGRESS,  // Jeu en cours

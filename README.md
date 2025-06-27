@@ -47,3 +47,45 @@ Afin de tester la génération de code via IA, j'ai décidé de coder cette appl
 J'utilise Webstorm avec l'assistant version Claude 3.5 Sonnet
 
 Pour l'instant a par lancer la commande `pnpm create vite`, je n'ai utilisé que le chat de l'assistant et n'ai édité aucun autres fichier de celui ci
+
+## Tests
+
+### Tests unitaires avec Vitest
+
+Pour exécuter les tests unitaires avec Vitest :
+
+```bash
+npm run test
+```
+
+Pour exécuter les tests en mode non-interactif :
+
+```bash
+npm run test:run
+```
+
+### Tests BDD avec Cucumber
+
+Les tests BDD (Behavior-Driven Development) utilisent Cucumber avec la syntaxe Gherkin. Ces tests sont plus lisibles et permettent de décrire le comportement attendu de l'application de manière plus naturelle.
+
+Pour exécuter les tests Cucumber :
+
+```bash
+npm run test:cucumber
+```
+
+Les tests Cucumber sont définis dans des fichiers `.feature` dans le répertoire `src/features/` et les step definitions correspondantes se trouvent dans `src/features/step_definitions/`.
+
+### Tests d'intégration avec Cypress
+
+Pour exécuter les tests d'intégration avec Cypress en mode interactif :
+
+```bash
+npm run cypress:open
+```
+
+Pour exécuter les tests Cypress en mode non-interactif :
+
+```bash
+npm run cypress:run
+```

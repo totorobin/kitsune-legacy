@@ -14,6 +14,11 @@ import VictoryOverlay from './VictoryOverlay.vue';
 import SolutionsDisplay from './SolutionsDisplay.vue';
 import KeyboardHelp from './KeyboardHelp.vue';
 import CalculatingOverlay from './CalculatingOverlay.vue';
+import GameModeSelector from './GameModeSelector.vue';
+import ManualGameSetup from './ManualGameSetup.vue';
+
+// Types pour les modes de jeu
+type GameMode = 'auto' | 'manual';
 
 // État du jeu
 const tiles = ref<Tile[]>([]);
@@ -27,6 +32,11 @@ const gameResult = ref<GameResult>(GameResult.IN_PROGRESS);
 const showNewGameButton = ref(false);
 const showSolutions = ref(false);
 const solutions = ref<Solution[]>([]);
+
+// État pour le mode de jeu
+const gameMode = ref<GameMode>('auto');
+const showModeSelector = ref(true);
+const showManualSetup = ref(false);
 
 // État pour l'affichage des raccourcis clavier
 const showKeyboardShortcuts = ref(true); // Par défaut, afficher les raccourcis
@@ -108,11 +118,25 @@ const calculateSolutions = () => {
   });
 };
 
-// Démarrer une nouvelle partie
-const startNewGame = () => {
-  tiles.value = generateRandomTiles();
-  targetNumber.value = generateTargetNumber();
-  timeLeft.value = MAX_TIME;
+// Sélectionner un mode de jeu
+const selectGameMode = (mode: GameMode) => {
+  gameMode.value = mode;
+  showModeSelector.value = false;
+
+  if (mode === 'auto') {
+    // Mode automatique: démarrer directement une nouvelle partie
+    startNewGame();
+  } else {
+    // Mode manuel: afficher l'interface de configuration
+    showManualSetup.value = true;
+  }
+};
+
+// Démarrer une nouvelle partie avec configuration manuelle
+const startManualGame = (config: { targetNumber: number, tiles: Tile[], gameTime: number }) => {
+  tiles.value = config.tiles;
+  targetNumber.value = config.targetNumber;
+  timeLeft.value = config.gameTime; // Utiliser le temps de jeu personnalisé
   expression.value = '';
   operationsHistory.value = [];
   gameStarted.value = true;
@@ -124,7 +148,36 @@ const startNewGame = () => {
   showSolutions.value = false;
   solutions.value = [];
   bestPlayerResult.value = null;
+  showManualSetup.value = false;
   startTimer();
+};
+
+// Démarrer une nouvelle partie
+const startNewGame = () => {
+  // Réinitialiser l'interface
+  showModeSelector.value = true;
+  showManualSetup.value = false;
+  gameStarted.value = false;
+
+  if (gameMode.value === 'auto') {
+    // Mode automatique: générer des tuiles et un nombre cible aléatoires
+    tiles.value = generateRandomTiles();
+    targetNumber.value = generateTargetNumber();
+    timeLeft.value = MAX_TIME;
+    expression.value = '';
+    operationsHistory.value = [];
+    gameStarted.value = true;
+    firstOperand.value = null;
+    operator.value = null;
+    nextId.value = 6; // Réinitialiser l'ID pour les nouvelles tuiles
+    gameResult.value = GameResult.IN_PROGRESS;
+    showNewGameButton.value = false;
+    showSolutions.value = false;
+    solutions.value = [];
+    bestPlayerResult.value = null;
+    startTimer();
+  }
+  // Pour le mode manuel, on attend que l'utilisateur configure et démarre le jeu
 };
 
 // Gestion des entrées pour les opérateurs
@@ -408,7 +461,20 @@ onUnmounted(() => {
       :isCalculating="isCalculatingSolutions"
     />
 
-    <div class="game-area">
+    <!-- Sélecteur de mode de jeu -->
+    <GameModeSelector 
+      v-if="showModeSelector && !gameStarted" 
+      :initialMode="gameMode"
+      @mode-selected="selectGameMode" 
+    />
+
+    <!-- Configuration manuelle du jeu -->
+    <ManualGameSetup 
+      v-if="showManualSetup" 
+      @start-game="startManualGame" 
+    />
+
+    <div class="game-area" v-if="gameStarted || showSolutions">
       <!-- Bouton pour afficher/masquer les raccourcis clavier (visible uniquement sur desktop) -->
       <div v-if="!isTouchDevice && gameStarted" class="shortcuts-toggle">
         <button @click="toggleKeyboardShortcuts" class="toggle-btn">
@@ -445,11 +511,15 @@ onUnmounted(() => {
         :playerHasWon="gameResult === GameResult.EXACT_WIN || gameResult === GameResult.BEST_WIN"
         :isCalculating="isCalculatingSolutions"
       />
-
-      <button class="start-button" @click="startNewGame">
-        Nouvelle partie
-      </button>
     </div>
+
+    <button 
+      class="start-button" 
+      @click="startNewGame"
+      v-if="!showModeSelector && !showManualSetup && !gameStarted && !showSolutions"
+    >
+      Nouvelle partie
+    </button>
   </div>
 </template>
 
