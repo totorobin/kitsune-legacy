@@ -1,5 +1,11 @@
 <script setup lang="ts">
-import { Solution, generateConciseExpression } from '../utils/solutionFinder';
+// Interface Solution pour la compatibilité
+interface Solution {
+  operations: string[];
+  result: number;
+  distance: number;
+  oneLineOperation: string;
+};
 import { computed } from 'vue';
 import LoadingSpinner from './LoadingSpinner.vue';
 
@@ -13,20 +19,25 @@ const props = withDefaults(defineProps<{
   isCalculating: false
 });
 
-// Calcul des expressions concises pour chaque solution
+// Utiliser directement oneLineOperation comme expression concise
 const solutionsWithExpressions = computed(() => {
   return props.solutions.map(solution => ({
     ...solution,
-    conciseExpression: generateConciseExpression(solution.operations)
+    conciseExpression: solution.oneLineOperation
   }));
 });
 
-// Regrouper les solutions par nombre de tuiles utilisées
+// Regrouper les solutions par nombre d'opérations
 const groupedSolutions = computed(() => {
   const groups = {};
 
-  // Filtrer les solutions qui utilisent plus de 6 tuiles (nombre maximum dans le jeu)
-  const validSolutions = solutionsWithExpressions.value.filter(solution => solution.tilesUsed <= 6);
+  // Utiliser le nombre d'opérations comme approximation du nombre de tuiles utilisées
+  // Chaque opération utilise 2 tuiles, mais les tuiles peuvent être réutilisées dans les opérations suivantes
+  // Donc on estime que le nombre de tuiles est le nombre d'opérations + 1
+  const validSolutions = solutionsWithExpressions.value.map(solution => ({
+    ...solution,
+    tilesUsed: solution.operations.length + 1
+  }));
 
   // S'assurer que les solutions sont uniques par leur expression concise
   const uniqueExpressions = new Map();

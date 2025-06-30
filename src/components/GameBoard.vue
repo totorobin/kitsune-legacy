@@ -3,7 +3,15 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { Tile, Operator, MAX_TIME, GameResult } from '../types/game';
 import { generateRandomTiles, generateTargetNumber, performOperation } from '../utils/gameLogic';
-import { findSolutions, getTopSolutions, Solution } from '../utils/solutionFinder';
+import { findSolution } from '../utils/solutionFinder2';
+
+// Interface Solution pour la compatibilité
+interface Solution {
+  operations: string[];
+  result: number;
+  distance: number;
+  oneLineOperation: string;
+}
 
 // Composants
 import GameHeader from './GameHeader.vue';
@@ -12,7 +20,6 @@ import OperatorsPanel from './OperatorsPanel.vue';
 import ExpressionDisplay from './ExpressionDisplay.vue';
 import VictoryOverlay from './VictoryOverlay.vue';
 import SolutionsDisplay from './SolutionsDisplay.vue';
-import KeyboardHelp from './KeyboardHelp.vue';
 import CalculatingOverlay from './CalculatingOverlay.vue';
 import GameModeSelector from './GameModeSelector.vue';
 import ManualGameSetup from './ManualGameSetup.vue';
@@ -81,11 +88,11 @@ const calculateSolutions = () => {
 
   // Utiliser setTimeout pour ne pas bloquer l'interface pendant le calcul
   setTimeout(() => {
-    // Trouver toutes les solutions possibles
-    const allSolutions = findSolutions(initialTiles, targetNumber.value);
+    // Extraire les valeurs des tuiles
+    const tileValues = initialTiles.map(tile => tile.value);
 
-  // Prendre les 5 meilleures solutions
-  solutions.value = getTopSolutions(allSolutions, 5);
+    // Trouver les solutions avec solutionFinder2
+    solutions.value = findSolution(tileValues, targetNumber.value);
 
   // Vérifier si le joueur a trouvé le meilleur résultat possible
   if (solutions.value.length > 0 && bestPlayerResult.value !== null) {
@@ -417,6 +424,45 @@ const handleKeydown = (event: KeyboardEvent) => {
   } else if (event.key === 'Backspace' || event.key === 'u' || event.key === 'U') {
     handleOperatorInput('U');
   }
+
+  // Ajout de raccourcis supplémentaires
+
+  // Espace pour sélectionner la première tuile disponible
+  if (event.key === ' ' || event.key === 'Space') {
+    const firstAvailableTile = tiles.value.find(tile => !tile.isSelected);
+    if (firstAvailableTile) {
+      handleTileClick(firstAvailableTile);
+    }
+  }
+
+  // Entrée pour confirmer une opération si un premier opérande et un opérateur sont sélectionnés
+  if (event.key === 'Enter') {
+    if (firstOperand.value && operator.value) {
+      // Chercher la première tuile disponible pour compléter l'opération
+      const secondOperand = tiles.value.find(tile => 
+        !tile.isSelected && tile.id !== firstOperand.value?.id
+      );
+      if (secondOperand) {
+        handleTileClick(secondOperand);
+      }
+    }
+  }
+
+  // Échap pour réinitialiser (comme la touche C)
+  if (event.key === 'Escape') {
+    handleOperatorInput('C');
+  }
+
+  // Tab pour basculer entre les opérateurs
+  if (event.key === 'Tab') {
+    event.preventDefault(); // Empêcher le comportement par défaut du navigateur
+
+    const operators = ['+', '-', '×', '÷'];
+    const currentIndex = operators.indexOf(operator.value as string);
+    const nextIndex = (currentIndex + 1) % operators.length;
+
+    handleOperatorInput(operators[nextIndex]);
+  }
 };
 
 // Fonction pour basculer l'affichage des raccourcis clavier
@@ -426,12 +472,15 @@ const toggleKeyboardShortcuts = () => {
 
 // Ajout et suppression des écouteurs d'événements
 onMounted(() => {
-  window.addEventListener('keydown', handleKeydown);
 
   // Détection des appareils tactiles
   isTouchDevice.value = ('ontouchstart' in window) || 
                         (navigator.maxTouchPoints > 0) || 
                         (navigator.msMaxTouchPoints > 0);
+
+  if(!isTouchDevice.value) {
+    window.addEventListener('keydown', handleKeydown);
+  }
 });
 
 onUnmounted(() => {
@@ -459,13 +508,6 @@ onUnmounted(() => {
 
     <CalculatingOverlay
       :isCalculating="isCalculatingSolutions"
-    />
-
-    <!-- Sélecteur de mode de jeu -->
-    <GameModeSelector 
-      v-if="showModeSelector && !gameStarted" 
-      :initialMode="gameMode"
-      @mode-selected="selectGameMode" 
     />
 
     <!-- Configuration manuelle du jeu -->
@@ -511,7 +553,16 @@ onUnmounted(() => {
         :playerHasWon="gameResult === GameResult.EXACT_WIN || gameResult === GameResult.BEST_WIN"
         :isCalculating="isCalculatingSolutions"
       />
+
     </div>
+
+
+    <!-- Sélecteur de mode de jeu -->
+    <GameModeSelector
+        v-if="showModeSelector && !gameStarted"
+        :initialMode="gameMode"
+        @mode-selected="selectGameMode"
+    />
 
     <button 
       class="start-button" 

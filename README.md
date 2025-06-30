@@ -55,13 +55,13 @@ Pour l'instant a par lancer la commande `pnpm create vite`, je n'ai utilisé que
 Pour exécuter les tests unitaires avec Vitest :
 
 ```bash
-npm run test
+pnpm test
 ```
 
 Pour exécuter les tests en mode non-interactif :
 
 ```bash
-npm run test:run
+pnpm test:run
 ```
 
 ### Tests BDD avec Cucumber
@@ -71,21 +71,21 @@ Les tests BDD (Behavior-Driven Development) utilisent Cucumber avec la syntaxe G
 Pour exécuter les tests Cucumber :
 
 ```bash
-npm run test:cucumber
+pnpm test:cucumber
 ```
 
-Les tests Cucumber sont définis dans des fichiers `.feature` dans le répertoire `src/features/` et les step definitions correspondantes se trouvent dans `src/features/step_definitions/`.
+Les tests Cucumber sont définis dans des fichiers `.feature` dans le répertoire `tests/cucumber/features/` et les step definitions correspondantes se trouvent dans `tests/cucumber/step_definitions/`.
 
 ### Tests d'intégration avec Cypress
 
 Pour exécuter les tests d'intégration avec Cypress en mode interactif :
 
 ```bash
-npm run cypress:open
+pnpm cypress:open
 ```
 
 Pour exécuter les tests Cypress en mode non-interactif :
 
 ```bash
-npm run cypress:run
+pnpm cypress:run
 ```

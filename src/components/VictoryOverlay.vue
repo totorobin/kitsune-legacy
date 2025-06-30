@@ -1,7 +1,13 @@
 <script setup lang="ts">
 import ConfettiExplosion from './ConfettiExplosion.vue';
 import { GameResult } from '../types/game';
-import { Solution, generateConciseExpression } from '../utils/solutionFinder';
+// Interface Solution pour la compatibilité
+interface Solution {
+  operations: string[];
+  result: number;
+  distance: number;
+  oneLineOperation: string;
+};
 import { computed, ref, watch } from 'vue';
 
 const props = defineProps<{
@@ -35,12 +41,12 @@ const closeOverlay = () => {
   emit('close-overlay');
 };
 
-// Calcul des expressions concises pour chaque solution
+// Utiliser directement oneLineOperation comme expression concise
 const solutionsWithExpressions = computed(() => {
   if (!props.solutions) return [];
   return props.solutions.map(solution => ({
     ...solution,
-    conciseExpression: generateConciseExpression(solution.operations)
+    conciseExpression: solution.oneLineOperation
   }));
 });
 
@@ -52,11 +58,8 @@ const bestSolution = computed(() => {
 </script>
 
 <template>
-  <div v-if="gameResult !== GameResult.IN_PROGRESS && visible" class="victory-overlay">
-    <div class="victory-content">
-          <button class="close-button" @click="closeOverlay" aria-label="Fermer l'overlay" title="Fermer pour voir les solutions">
-                  <span class="close-icon">&times;</span>
-                </button>
+  <div v-if="gameResult !== GameResult.IN_PROGRESS && visible" class="victory-overlay" @click="closeOverlay">
+    <div class="victory-content" @click.stop>
       <div class="victory-text">
         <template v-if="gameResult === GameResult.EXACT_WIN">GAGNÉ !</template>
         <template v-else-if="gameResult === GameResult.BEST_WIN">BIEN JOUÉ !</template>
@@ -82,7 +85,6 @@ const bestSolution = computed(() => {
         </div>
       </div>
 
-      <button v-if="showNewGameButton" class="new-game-button" @click="startNewGame">Nouvelle Partie</button>
     </div>
     <ConfettiExplosion :active="gameResult !== GameResult.LOSS" :count="150" />
   </div>
@@ -112,57 +114,6 @@ const bestSolution = computed(() => {
   position: relative;
 }
 
-.close-button {
-  position: absolute;
-  top: -20px;
-  right: -20px;
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background-color: var(--kitsune-orange);
-  color: white;
-  border: none;
-  font-size: 28px;
-  line-height: 1;
-  cursor: pointer;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 0;
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
-  transition: background-color 0.2s, transform 0.2s;
-  /* Amélioration de la zone cliquable avec pseudo-élément */
-  z-index: 10;
-}
-
-.close-button:hover {
-  background-color: var(--kitsune-dark-orange);
-  transform: scale(1.1);
-}
-
-/* Ajouter une zone invisible plus grande pour faciliter le clic/toucher */
-.close-button::before {
-  content: '';
-  position: absolute;
-  top: -10px;
-  left: -10px;
-  right: -10px;
-  bottom: -10px;
-  border-radius: 50%;
-  /* La zone est invisible mais cliquable */
-  cursor: pointer;
-}
-
-.close-icon {
-  position: relative;
-  display: block;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-weight: bold;
-}
 
 .victory-text {
   font-size: 96px;
@@ -172,6 +123,7 @@ const bestSolution = computed(() => {
   animation: pulse 1.5s infinite;
   letter-spacing: 2px;
   text-transform: uppercase;
+  text-align: center;
 }
 
 .victory-subtitle {
@@ -184,21 +136,6 @@ const bestSolution = computed(() => {
   margin: 0 auto;
 }
 
-.new-game-button {
-  margin-top: 30px;
-  padding: 20px 40px;
-  font-size: 28px;
-  background: var(--kitsune-orange);
-  color: white;
-  border: none;
-  border-radius: 12px;
-  cursor: pointer;
-  animation: fadeIn 0.5s ease-in;
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
-  transition: transform 0.3s, box-shadow 0.3s, background-color 0.3s;
-  font-weight: bold;
-  letter-spacing: 1px;
-}
 
 /* Styles responsifs pour mobile */
 @media (max-width: 480px) {
@@ -212,18 +149,6 @@ const bestSolution = computed(() => {
     padding: 0 10px;
   }
 
-  .new-game-button {
-    margin-top: 20px;
-    padding: 15px 30px;
-    font-size: 20px;
-  }
-
-  .close-button {
-    top: -15px;
-    right: -15px;
-    width: 40px;
-    height: 40px;
-  }
 
   .solution-expression {
     font-size: 18px;
@@ -232,11 +157,6 @@ const bestSolution = computed(() => {
   }
 }
 
-.new-game-button:hover {
-  background: var(--kitsune-dark-orange);
-  transform: translateY(-3px);
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
-}
 
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(20px); }

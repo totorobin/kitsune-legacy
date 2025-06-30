@@ -8,11 +8,10 @@
       <div class="target-input">
         <input 
           type="number" 
-          v-model.number="targetNumber" 
-          min="1" 
+          v-model="targetNumber"
+          min="0"
           max="999" 
           step="1"
-          @input="validateTargetNumber"
         />
       </div>
     </div>
@@ -33,7 +32,7 @@
                 'selected-once': isSelected(num) && getSelectionCount(num) === 1 && canSelectAgain(num)
               }"
               @click="toggleTile(num)"
-              :disabled="selectedTiles.length >= 6 && !canSelectAgain(num)"
+              :disabled="selectedTiles.length >= 6"
             >
               {{ num }}
               <span v-if="isSelected(num)" class="selection-count">{{ getSelectionCount(num) }}</span>
@@ -48,9 +47,8 @@
               v-for="num in [25, 50, 75, 100]" 
               :key="`large-${num}`"
               class="tile-option"
-              :class="{ 'selected': isSelected(num) }"
+              :class="{ 'selected': isSelected(num), 'disabled': selectedTiles.length >= 6 && !canSelectAgain(num) }"
               @click="toggleTile(num)"
-              :disabled="selectedTiles.length >= 6 && !canSelectAgain(num)"
             >
               {{ num }}
               <span v-if="isSelected(num)" class="selection-count">{{ getSelectionCount(num) }}</span>
@@ -117,12 +115,7 @@ const emit = defineEmits<{
   (e: 'start-game', config: { targetNumber: number, tiles: Tile[], gameTime: number }): void;
 }>();
 
-// Validation du nombre cible
-const validateTargetNumber = () => {
-  if (targetNumber.value < 1) targetNumber.value = 1;
-  if (targetNumber.value > 999) targetNumber.value = 999;
-  targetNumber.value = Math.floor(targetNumber.value);
-};
+
 
 // Vérifier si une tuile est déjà sélectionnée et combien de fois
 const isSelected = (value: number): boolean => {
@@ -146,27 +139,41 @@ const canSelectAgain = (value: number): boolean => {
 
 // Ajouter ou retirer une tuile
 const toggleTile = (value: number) => {
-  if (selectedTiles.value.length < 6 && canSelectAgain(value)) {
-    // Ajouter la tuile si on peut encore la sélectionner
-    selectedTiles.value.push(value);
+  const currentCount = getSelectionCount(value);
 
-    // Incrémenter le compteur
-    const currentCount = getSelectionCount(value);
-    selectedTilesCount.value.set(value, currentCount + 1);
-  } else {
-    // Retirer une instance de la tuile
-    const currentCount = getSelectionCount(value);
-    if (currentCount > 1) {
-      // Si la tuile a été sélectionnée plusieurs fois, réduire le compteur
-      selectedTilesCount.value.set(value, currentCount - 1);
+  // Pour les petits nombres (1-10)
+  if (value >= 1 && value <= 10) {
+    // Premier clic: sélectionner une fois
+    if (currentCount === 0 && selectedTiles.value.length < 6) {
+      selectedTiles.value.push(value);
+      selectedTilesCount.value.set(value, 1);
+    } 
+    // Deuxième clic: sélectionner deux fois
+    else if (currentCount === 1 && selectedTiles.value.length < 6) {
+      selectedTiles.value.push(value);
+      selectedTilesCount.value.set(value, 2);
+    } 
+    // Troisième clic: désélectionner les deux
+    else if (currentCount === 2) {
+      // Supprimer les deux instances
+      selectedTilesCount.value.delete(value);
 
-      // Trouver et supprimer une instance de cette valeur dans le tableau
-      const index = selectedTiles.value.lastIndexOf(value);
-      if (index !== -1) {
-        selectedTiles.value.splice(index, 1);
+      // Trouver et supprimer les deux instances dans le tableau
+      for (let i = selectedTiles.value.length - 1; i >= 0; i--) {
+        if (selectedTiles.value[i] === value) {
+          selectedTiles.value.splice(i, 1);
+        }
       }
-    } else {
-      // Si c'est la dernière instance, supprimer complètement
+    }
+  } 
+  // Pour les grands nombres (comportement inchangé)
+  else {
+    if (currentCount === 0 && selectedTiles.value.length < 6) {
+      // Ajouter la tuile
+      selectedTiles.value.push(value);
+      selectedTilesCount.value.set(value, 1);
+    } else if (currentCount === 1) {
+      // Supprimer la tuile
       selectedTilesCount.value.delete(value);
 
       // Trouver et supprimer l'instance dans le tableau
@@ -319,7 +326,7 @@ h5 {
   height: 40px;
   background-color: #eee;
   border-radius: 4px;
-  cursor: pointer;
+  cursor: grab;
   font-weight: bold;
   transition: all 0.2s ease;
 }
@@ -337,6 +344,7 @@ h5 {
 .tile-option.selected-once {
   background-color: var(--kitsune-orange-light);
   border: 2px solid var(--kitsune-orange);
+  color: var(--kitsune-dark);
 }
 
 .selection-count {
@@ -355,7 +363,7 @@ h5 {
   border: 1px solid var(--kitsune-orange);
 }
 
-.tile-option[disabled] {
+.tile-option[disabled="true"] {
   opacity: 0.5;
   cursor: not-allowed;
 }

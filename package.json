@@ -18,19 +18,17 @@
   },
   "devDependencies": {
     "@badeball/cypress-cucumber-preprocessor": "^18.0.6",
+    "@bahmutov/cypress-esbuild-preprocessor": "^2.3.0",
     "@cucumber/cucumber": "^10.3.1",
-    "@cypress/webpack-preprocessor": "^6.0.0",
     "@vitejs/plugin-vue": "^6.0.0",
     "@vue/tsconfig": "^0.7.0",
     "cypress": "^13.6.2",
     "jsdom": "^26.1.0",
-    "ts-loader": "^9.5.1",
     "ts-node": "^10.9.2",
     "typescript": "~5.8.3",
     "vite": "^7.0.0",
     "vitest": "^3.2.4",
-    "vue-tsc": "^2.2.10",
-    "webpack": "^5.89.0"
+    "vue-tsc": "^2.2.10"
   },
   "cypress-cucumber-preprocessor": {
     "stepDefinitions": [

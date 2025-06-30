@@ -31,14 +31,71 @@ const getOperatorKeyHint = (operator: string) => {
 <template>
   <div class="operators" v-if="showGameElements">
     <div class="operators-main">
-      <button @click="handleOperatorClick('+')" :disabled="!gameStarted || !hasFirstOperand">+</button>
-      <button @click="handleOperatorClick('-')" :disabled="!gameStarted || !hasFirstOperand">-</button>
-      <button @click="handleOperatorClick('×')" :disabled="!gameStarted || !hasFirstOperand">×</button>
-      <button @click="handleOperatorClick('÷')" :disabled="!gameStarted || !hasFirstOperand">÷</button>
+      <button 
+        @click="handleOperatorClick('+')" 
+        :disabled="!gameStarted || !hasFirstOperand"
+        :class="{ 'show-shortcuts': showKeyboardShortcuts && gameStarted }"
+      >
+        +
+        <span v-if="showKeyboardShortcuts && gameStarted" class="key-hint">
+          {{ getOperatorKeyHint('+') }}
+        </span>
+      </button>
+      <button 
+        @click="handleOperatorClick('-')" 
+        :disabled="!gameStarted || !hasFirstOperand"
+        :class="{ 'show-shortcuts': showKeyboardShortcuts && gameStarted }"
+      >
+        -
+        <span v-if="showKeyboardShortcuts && gameStarted" class="key-hint">
+          {{ getOperatorKeyHint('-') }}
+        </span>
+      </button>
+      <button 
+        @click="handleOperatorClick('×')" 
+        :disabled="!gameStarted || !hasFirstOperand"
+        :class="{ 'show-shortcuts': showKeyboardShortcuts && gameStarted }"
+      >
+        ×
+        <span v-if="showKeyboardShortcuts && gameStarted" class="key-hint">
+          {{ getOperatorKeyHint('×') }}
+        </span>
+      </button>
+      <button 
+        @click="handleOperatorClick('÷')" 
+        :disabled="!gameStarted || !hasFirstOperand"
+        :class="{ 'show-shortcuts': showKeyboardShortcuts && gameStarted }"
+      >
+        ÷
+        <span v-if="showKeyboardShortcuts && gameStarted" class="key-hint">
+          {{ getOperatorKeyHint('÷') }}
+        </span>
+      </button>
     </div>
     <div class="operators-controls">
-      <button @click="handleOperatorClick('C')" :disabled="!gameStarted" class="control-button">C</button>
-      <button @click="handleOperatorClick('U')" :disabled="!gameStarted" class="undo-button" title="Annuler la dernière opération">↩</button>
+      <button 
+        @click="handleOperatorClick('C')" 
+        :disabled="!gameStarted" 
+        class="control-button"
+        :class="{ 'show-shortcuts': showKeyboardShortcuts && gameStarted }"
+      >
+        C
+        <span v-if="showKeyboardShortcuts && gameStarted" class="key-hint">
+          {{ getOperatorKeyHint('C') }}
+        </span>
+      </button>
+      <button 
+        @click="handleOperatorClick('U')" 
+        :disabled="!gameStarted" 
+        class="undo-button" 
+        title="Annuler la dernière opération"
+        :class="{ 'show-shortcuts': showKeyboardShortcuts && gameStarted }"
+      >
+        ↩
+        <span v-if="showKeyboardShortcuts && gameStarted" class="key-hint">
+          {{ getOperatorKeyHint('U') }}
+        </span>
+      </button>
     </div>
   </div>
 </template>
@@ -118,6 +175,36 @@ const getOperatorKeyHint = (operator: string) => {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
   }
+}
+
+/* Style pour les raccourcis clavier */
+.operators button {
+  position: relative;
+}
+
+.operators .key-hint {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  font-size: 10px;
+  background-color: rgba(0, 0, 0, 0.1);
+  color: var(--kitsune-dark);
+  padding: 1px 3px;
+  border-radius: 3px;
+  opacity: 0.7;
+  min-width: 12px;
+  text-align: center;
+}
+
+/* Animation pour les raccourcis clavier */
+.show-shortcuts .key-hint {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.5; }
+  50% { opacity: 0.7; }
+  100% { opacity: 0.5; }
 }
 
 /* Style mobile: afficher sur deux lignes */

@@ -147,13 +147,13 @@ const getKeyHint = (tile: Tile) => {
   position: absolute;
   top: 3px;
   right: 3px;
-  font-size: 11px;
-  background-color: var(--kitsune-orange);
-  color: white;
-  padding: 1px 4px;
+  font-size: 10px;
+  background-color: rgba(0, 0, 0, 0.1);
+  color: var(--kitsune-dark);
+  padding: 1px 3px;
   border-radius: 3px;
-  opacity: 0.9;
-  min-width: 14px;
+  opacity: 0.7;
+  min-width: 12px;
   text-align: center;
 }
 
@@ -163,8 +163,8 @@ const getKeyHint = (tile: Tile) => {
 }
 
 @keyframes pulse {
-  0% { opacity: 0.7; }
-  50% { opacity: 1; }
-  100% { opacity: 0.7; }
+  0% { opacity: 0.5; }
+  50% { opacity: 0.7; }
+  100% { opacity: 0.5; }
 }
 </style>

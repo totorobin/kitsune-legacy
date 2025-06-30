@@ -8,15 +8,17 @@ body {
 }
 
 #app {
-  max-width: 1280px;
   margin: 0 auto;
   padding: 1rem;
   font-weight: normal;
+  font-family: Arial, sans-serif;
+  max-width: 800px;
 }
 
 /* Styles responsifs pour les appareils mobiles */
 @media (max-width: 480px) {
   #app {
-    padding: 0.5rem;
+    padding: 0;
+    width: 100%;
   }
 }
