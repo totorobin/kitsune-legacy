@@ -2,12 +2,14 @@
 
 interface Tile {
     value : number,
+    tilesValues: number[]
 }
 
 interface Operation extends Tile {
     left: Tile
     right: Tile
     operator: string
+    tilesValues: number[]
 }
 
 export interface Solution {
@@ -19,7 +21,7 @@ export interface Solution {
 }
 
 export function findSolution(tiles: number[], targetNumber: number) : Solution[] {
-   const iTiles : Tile[] = tiles.map(tile => ({ value : tile, origin: null}))
+   const iTiles : Tile[] = tiles.map(tile => ({ value : tile, tilesValues: [tile]}))
 
    const solutions = iFindSolution(iTiles, targetNumber);
 
@@ -38,12 +40,13 @@ export function findSolution(tiles: number[], targetNumber: number) : Solution[]
 }
 
 function iFindSolution(tiles: Tile[], targetNumber: number) : Operation[] {
+
+    if(tiles.length <= 1) {
+        return tiles as Operation[];
+    }
+
     // Trier les tuiles par valeur croissante
     const sortedTiles = [...tiles].sort((a, b) => a.value - b.value);
-
-    if (sortedTiles.length === 0) {
-        return [];
-    }
 
     const results: Operation[] = [];
 
@@ -70,25 +73,28 @@ function iFindSolution(tiles: Tile[], targetNumber: number) : Operation[] {
         for (const operation of operations) {
             // Appeler la fonction iFindSolution avec une nouvelle liste de tuiles
             const newTiles = [operation, ...remainingTiles];
-            const subResults = iFindSolution(newTiles, targetNumber);
-            results.push(...subResults);
+            results.push(...iFindSolution(newTiles, targetNumber));
         }
     }
 
     // Appeler la fonction iFindSolution avec une nouvelle liste de tuiles sans a
-    const subResults = iFindSolution(tilesWithoutA, targetNumber);
-    results.push(...subResults);
+    results.push(...iFindSolution(tilesWithoutA, targetNumber));
 
-    // Filtrer la liste des résultats pour ne garder que les résultats les plus proches du targetNumber
-    if (results.length === 0) {
-        return [];
-    }
-
-    // Trouver la distance minimale
-    const minDistance = Math.min(...results.map(r => Math.abs(r.value - targetNumber)));
-
-    // Retourner les résultats avec la distance minimale
-    return results.filter(r => Math.abs(r.value - targetNumber) === minDistance);
+    return results.reduce((acc, curr) => {
+        // Retourner les résultats avec la distance minimale
+        if (acc.length === 0) {
+            return [curr];
+        }
+        const distance = Math.abs(curr.value - targetNumber);
+        const minDistance = Math.abs(acc[0].value - targetNumber);
+        if (distance < minDistance) {
+            return [curr];
+        } else if (distance === minDistance) {
+            return [...acc, curr];
+        } else {
+            return acc;
+        }
+    }, [])
 }
 
 function createOperations(a: Tile, b: Tile) : Operation[] {
@@ -102,7 +108,8 @@ function createOperations(a: Tile, b: Tile) : Operation[] {
         value: a.value + b.value,
         left: a,
         right: b,
-        operator: '+'
+        operator: '+',
+        tilesValues: [ ...a.tilesValues , ...b.tilesValues ]
     });
 
     // a x b (seulement si a != 1)
@@ -111,7 +118,8 @@ function createOperations(a: Tile, b: Tile) : Operation[] {
             value: a.value * b.value,
             left: a,
             right: b,
-            operator: '×'
+            operator: '×',
+            tilesValues: [ ...a.tilesValues , ...b.tilesValues ]
         });
     }
 
@@ -121,7 +129,8 @@ function createOperations(a: Tile, b: Tile) : Operation[] {
             value: b.value - a.value,
             left: b,
             right: a,
-            operator: '-'
+            operator: '-',
+            tilesValues: [ ...a.tilesValues , ...b.tilesValues ]
         });
     }
 
@@ -129,10 +138,10 @@ function createOperations(a: Tile, b: Tile) : Operation[] {
     if (a.value !== 1 && b.value % a.value === 0) {
         operations.push({
             value: b.value / a.value,
-
             left: b,
             right: a,
-            operator: '÷'
+            operator: '÷',
+            tilesValues: [ ...a.tilesValues , ...b.tilesValues ]
         });
     }
 
@@ -143,33 +152,37 @@ function createOperations(a: Tile, b: Tile) : Operation[] {
 function operationToListInstructions(operation: Operation) : string[] {
     const listInstructions = [];
     if(operation.left && operation.right) {
-        listInstructions.push(operationToListInstructions(operation.left as Operation));
-        listInstructions.push(operationToListInstructions(operation.right as Operation));
+        listInstructions.push(...operationToListInstructions(operation.left as Operation));
+        listInstructions.push(...operationToListInstructions(operation.right as Operation));
         listInstructions.push(`${operation.left.value} ${operation.operator} ${operation.right.value} = ${operation.value}`);
     }
     return listInstructions;
 }
 
 function operationToString(operation: Operation) : string {
-    if(!operation.left || !operation.right) {
+    if(operation.tilesValues.length <= 1) {
         return operation.value.toString();
     }
     let valueLeft = operationToString(operation.left as Operation);
     let valueRight = operationToString(operation.right as Operation);
+
+
     if(operation.operator === '×') {
-        if((valueLeft as unknown as Operation).operator === '+' || (valueLeft as unknown as Operation).operator === '-') {
+        if((operation.left as Operation).operator === '+' || (operation.left as Operation).operator === '-') {
             valueLeft = `(${valueLeft})`;
         }
-        if((valueRight as unknown as Operation).operator === '+' || (valueRight as unknown as Operation).operator === '-') {
-            valueRight = `(${valueLeft})`;
+        if((operation.right as Operation).operator === '+' || (operation.right as Operation).operator === '-') {
+            valueRight = `(${valueRight})`;
         }
     } else if(operation.operator === '÷') {
-        if((valueLeft as unknown as Operation) && (valueLeft as unknown as Operation).operator !== 'x') {
+        if(operation.left.tilesValues.length > 1 && (operation.left as Operation).operator !== 'x') {
             valueLeft = `(${valueLeft})`;
         }
-        if((valueRight as unknown as Operation).operator) {
-            valueRight = `(${valueLeft})`;
+        if(operation.right.tilesValues.length > 1) {
+            valueRight = `(${valueRight})`;
         }
+    } else if(operation.operator === '-' && operation.right.tilesValues.length > 1) {
+        valueRight = `(${valueRight})`;
     }
     return `${valueLeft} ${operation.operator} ${valueRight}`;
 
