@@ -1,14 +1,8 @@
 <script setup lang="ts">
 import ConfettiExplosion from './ConfettiExplosion.vue';
 import { GameResult } from '../types/game';
-// Interface Solution pour la compatibilité
-interface Solution {
-  operations: string[];
-  result: number;
-  distance: number;
-  oneLineOperation: string;
-};
 import { computed, ref, watch } from 'vue';
+import { type Solution } from "../utils/solutionFinder2";
 
 const props = defineProps<{
   gameResult: GameResult;
@@ -41,19 +35,11 @@ const closeOverlay = () => {
   emit('close-overlay');
 };
 
-// Utiliser directement oneLineOperation comme expression concise
-const solutionsWithExpressions = computed(() => {
-  if (!props.solutions) return [];
-  return props.solutions.map(solution => ({
-    ...solution,
-    conciseExpression: solution.oneLineOperation
-  }));
-});
 
 // Récupérer la meilleure solution
 const bestSolution = computed(() => {
-  if (solutionsWithExpressions.value.length === 0) return null;
-  return solutionsWithExpressions.value[0];
+  if (props.solutions.length === 0) return null;
+  return props.solutions[0];
 });
 </script>
 
@@ -74,14 +60,14 @@ const bestSolution = computed(() => {
       </div>
 
       <!-- Affichage de la meilleure solution quand le temps est écoulé -->
-      <div v-if="gameResult === GameResult.LOSS && bestSolution" class="best-solution-display">
+      <div v-if="bestSolution" class="best-solution-display">
         <div class="target-number-info">Nombre cible : {{ targetNumber }}</div>
         <div class="best-solution-card">
           <div class="solution-result">
             <span v-if="bestSolution.distance === 0">Résultat exact</span>
             <span v-else>Meilleur résultat: {{ bestSolution.result }}</span>
           </div>
-          <div class="solution-expression">{{ bestSolution.conciseExpression }}</div>
+          <div class="solution-expression">{{ bestSolution.oneLineOperation }}</div>
         </div>
       </div>
 

@@ -2,7 +2,6 @@
 
 interface Tile {
     value : number,
-    origin: Operation | null
 }
 
 interface Operation extends Tile {
@@ -11,11 +10,12 @@ interface Operation extends Tile {
     operator: string
 }
 
-interface Solution {
+export interface Solution {
     operations : string[], // liste des opérations au format "a op b = r"
     result : number,
     distance : number,
     oneLineOperation : string, // une seule opération au format "(a op b) op c op (d op e) = r"
+    nbTiles : number // nombre de tuiles utilisées
 }
 
 export function findSolution(tiles: number[], targetNumber: number) : Solution[] {
@@ -23,57 +23,18 @@ export function findSolution(tiles: number[], targetNumber: number) : Solution[]
 
    const solutions = iFindSolution(iTiles, targetNumber);
 
+   console.log('Solutions:', solutions);
    // formater les solutions dans le format attendu
    return solutions.map(operation => {
-       const operationsList: string[] = [];
-       const usedOperations = new Set<string>();
-
-       // Fonction récursive pour extraire les opérations
-       function extractOperations(op: Operation) {
-           if (op.origin) {
-               extractOperations(op.origin);
-           }
-
-           if (op.left && op.right) {
-               const operationText = `${op.left.value} ${op.operator} ${op.right.value} = ${op.value}`;
-               if (!usedOperations.has(operationText)) {
-                   operationsList.push(operationText);
-                   usedOperations.add(operationText);
-               }
-
-               if (op.left.origin) {
-                   extractOperations(op.left.origin);
-               }
-
-               if (op.right.origin) {
-                   extractOperations(op.right.origin);
-               }
-           }
-       }
-
-       extractOperations(operation);
-
-       // Générer l'expression en une ligne
-       function generateOneLineOperation(op: Operation): string {
-           if (!op.left || !op.right) {
-               return op.value.toString();
-           }
-
-           const leftExpr = op.left.origin ? `(${generateOneLineOperation(op.left.origin)})` : op.left.value.toString();
-           const rightExpr = op.right.origin ? `(${generateOneLineOperation(op.right.origin)})` : op.right.value.toString();
-
-           return `${leftExpr} ${op.operator} ${rightExpr}`;
-       }
-
-       const oneLineOp = `${generateOneLineOperation(operation)} = ${operation.value}`;
-
+       const listInstructions = operationToListInstructions(operation);
        return {
-           operations: operationsList,
+           operations: listInstructions,
            result: operation.value,
            distance: Math.abs(operation.value - targetNumber),
-           oneLineOperation: oneLineOp
+           oneLineOperation:  `${operationToString(operation)} = ${operation.value}`,
+           nbTiles: listInstructions.length + 1
        };
-   });
+   }).sort((a, b) => a.nbTiles - b.nbTiles);
 }
 
 function iFindSolution(tiles: Tile[], targetNumber: number) : Operation[] {
@@ -139,7 +100,6 @@ function createOperations(a: Tile, b: Tile) : Operation[] {
     // a + b
     operations.push({
         value: a.value + b.value,
-        origin: null,
         left: a,
         right: b,
         operator: '+'
@@ -149,7 +109,6 @@ function createOperations(a: Tile, b: Tile) : Operation[] {
     if (a.value !== 1) {
         operations.push({
             value: a.value * b.value,
-            origin: null,
             left: a,
             right: b,
             operator: '×'
@@ -160,7 +119,6 @@ function createOperations(a: Tile, b: Tile) : Operation[] {
     if (a.value !== b.value) {
         operations.push({
             value: b.value - a.value,
-            origin: null,
             left: b,
             right: a,
             operator: '-'
@@ -171,7 +129,7 @@ function createOperations(a: Tile, b: Tile) : Operation[] {
     if (a.value !== 1 && b.value % a.value === 0) {
         operations.push({
             value: b.value / a.value,
-            origin: null,
+
             left: b,
             right: a,
             operator: '÷'
@@ -179,4 +137,40 @@ function createOperations(a: Tile, b: Tile) : Operation[] {
     }
 
     return operations;
+}
+
+
+function operationToListInstructions(operation: Operation) : string[] {
+    const listInstructions = [];
+    if(operation.left && operation.right) {
+        listInstructions.push(operationToListInstructions(operation.left as Operation));
+        listInstructions.push(operationToListInstructions(operation.right as Operation));
+        listInstructions.push(`${operation.left.value} ${operation.operator} ${operation.right.value} = ${operation.value}`);
+    }
+    return listInstructions;
+}
+
+function operationToString(operation: Operation) : string {
+    if(!operation.left || !operation.right) {
+        return operation.value.toString();
+    }
+    let valueLeft = operationToString(operation.left as Operation);
+    let valueRight = operationToString(operation.right as Operation);
+    if(operation.operator === '×') {
+        if((valueLeft as unknown as Operation).operator === '+' || (valueLeft as unknown as Operation).operator === '-') {
+            valueLeft = `(${valueLeft})`;
+        }
+        if((valueRight as unknown as Operation).operator === '+' || (valueRight as unknown as Operation).operator === '-') {
+            valueRight = `(${valueLeft})`;
+        }
+    } else if(operation.operator === '÷') {
+        if((valueLeft as unknown as Operation) && (valueLeft as unknown as Operation).operator !== 'x') {
+            valueLeft = `(${valueLeft})`;
+        }
+        if((valueRight as unknown as Operation).operator) {
+            valueRight = `(${valueLeft})`;
+        }
+    }
+    return `${valueLeft} ${operation.operator} ${valueRight}`;
+
 }
