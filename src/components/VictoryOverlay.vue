@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import ConfettiExplosion from './ConfettiExplosion.vue';
+import type { GameResultType } from '../types/game';
 import { GameResult } from '../types/game';
 import { computed, ref, watch } from 'vue';
 import { type Solution } from "../utils/solutionFinder2";
 
 const props = defineProps<{
-  gameResult: GameResult;
+  gameResult: GameResultType;
   showNewGameButton: boolean;
   solutions?: Solution[];
   targetNumber?: number;
@@ -26,9 +27,6 @@ watch(() => props.gameResult, (newValue, oldValue) => {
   }
 });
 
-const startNewGame = () => {
-  emit('new-game');
-};
 
 const closeOverlay = () => {
   visible.value = false;
@@ -38,7 +36,7 @@ const closeOverlay = () => {
 
 // Récupérer la meilleure solution
 const bestSolution = computed(() => {
-  if (props.solutions.length === 0) return null;
+  if (!props.solutions || props.solutions.length === 0) return null;
   return props.solutions[0];
 });
 </script>

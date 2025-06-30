@@ -7,7 +7,6 @@ interface Solution {
   oneLineOperation: string;
 };
 import { computed } from 'vue';
-import LoadingSpinner from './LoadingSpinner.vue';
 
 const props = withDefaults(defineProps<{
   solutions: Solution[];
@@ -29,7 +28,7 @@ const solutionsWithExpressions = computed(() => {
 
 // Regrouper les solutions par nombre d'opérations
 const groupedSolutions = computed(() => {
-  const groups = {};
+  const groups: Record<number, Array<Solution & { conciseExpression: string, tilesUsed: number }>> = {};
 
   // Utiliser le nombre d'opérations comme approximation du nombre de tuiles utilisées
   // Chaque opération utilise 2 tuiles, mais les tuiles peuvent être réutilisées dans les opérations suivantes
@@ -101,7 +100,7 @@ const groupedSolutions = computed(() => {
               {{ solution.conciseExpression }}
             </div>
             <div v-if="solution.operations.length > 0" class="toggle-details">
-              <button @click="$event.target.closest('.solution-item').classList.toggle('show-details')">
+              <button @click="($event.target as HTMLElement).closest?.('.solution-item')?.classList.toggle('show-details')">
                 Voir les détails
               </button>
             </div>

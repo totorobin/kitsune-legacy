@@ -80,7 +80,7 @@ function iFindSolution(tiles: Tile[], targetNumber: number) : Operation[] {
     // Appeler la fonction iFindSolution avec une nouvelle liste de tuiles sans a
     results.push(...iFindSolution(tilesWithoutA, targetNumber));
 
-    return results.reduce((acc, curr) => {
+    return results.reduce<Operation[]>((acc, curr) => {
         // Retourner les résultats avec la distance minimale
         if (acc.length === 0) {
             return [curr];
@@ -97,6 +97,7 @@ function iFindSolution(tiles: Tile[], targetNumber: number) : Operation[] {
     }, [])
 }
 
+
 function createOperations(a: Tile, b: Tile) : Operation[] {
     const operations : Operation[] = [];
 
@@ -109,7 +110,7 @@ function createOperations(a: Tile, b: Tile) : Operation[] {
         left: a,
         right: b,
         operator: '+',
-        tilesValues: [ ...a.tilesValues , ...b.tilesValues ]
+        tilesValues: [ ...a.tilesValues , ...b.tilesValues ].sort()
     });
 
     // a x b (seulement si a != 1)
@@ -119,7 +120,7 @@ function createOperations(a: Tile, b: Tile) : Operation[] {
             left: a,
             right: b,
             operator: '×',
-            tilesValues: [ ...a.tilesValues , ...b.tilesValues ]
+            tilesValues: [ ...a.tilesValues , ...b.tilesValues ].sort()
         });
     }
 
@@ -130,7 +131,7 @@ function createOperations(a: Tile, b: Tile) : Operation[] {
             left: b,
             right: a,
             operator: '-',
-            tilesValues: [ ...a.tilesValues , ...b.tilesValues ]
+            tilesValues: [ ...a.tilesValues , ...b.tilesValues ].sort()
         });
     }
 
@@ -141,7 +142,7 @@ function createOperations(a: Tile, b: Tile) : Operation[] {
             left: b,
             right: a,
             operator: '÷',
-            tilesValues: [ ...a.tilesValues , ...b.tilesValues ]
+            tilesValues: [ ...a.tilesValues , ...b.tilesValues ].sort()
         });
     }
 

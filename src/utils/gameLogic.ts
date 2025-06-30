@@ -1,4 +1,4 @@
-import { Tile, Operator } from '../types/game';
+import type { Tile, Operator } from '../types/game';
 
 // Génération des nombres aléatoires
 export const generateRandomTiles = (): Tile[] => {

@@ -12,12 +12,14 @@ export type Operator = '+' | '-' | '×' | '÷';
 export type GameMode = 'auto' | 'manual';
 
 // État des résultats du jeu
-export enum GameResult {
-  IN_PROGRESS,  // Jeu en cours
-  EXACT_WIN,    // Victoire avec résultat exact
-  BEST_WIN,     // Victoire avec meilleur résultat possible
-  LOSS,         // Défaite
-}
+export const GameResult = {
+  IN_PROGRESS: 0,  // Jeu en cours
+  EXACT_WIN: 1,    // Victoire avec résultat exact
+  BEST_WIN: 2,     // Victoire avec meilleur résultat possible
+  LOSS: 3,         // Défaite
+} as const;
+
+export type GameResultType = typeof GameResult[keyof typeof GameResult];
 
 // Constantes du jeu
 export const MAX_TIME = 40; // Temps maximum en secondes

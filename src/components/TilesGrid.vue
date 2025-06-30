@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed } from 'vue';
-import { Tile, SPECIAL_KEY_MAPPING } from '../types/game';
+import type { Tile } from '../types/game';
+import { SPECIAL_KEY_MAPPING } from '../types/game';
 
 const props = defineProps<{
   tiles: Tile[];

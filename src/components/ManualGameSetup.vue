@@ -102,7 +102,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { Tile } from '../types/game';
+import type { Tile } from '../types/game';
 
 // État local
 const targetNumber = ref(100);

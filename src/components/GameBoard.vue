@@ -1,7 +1,8 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue';
-import { Tile, Operator, MAX_TIME, GameResult } from '../types/game';
+import type { Tile, Operator, GameResultType } from '../types/game';
+import { MAX_TIME, GameResult } from '../types/game';
 import { generateRandomTiles, generateTargetNumber, performOperation } from '../utils/gameLogic';
 import { findSolution } from '../utils/solutionFinder2';
 
@@ -11,6 +12,7 @@ interface Solution {
   result: number;
   distance: number;
   oneLineOperation: string;
+  nbTiles: number;
 }
 
 // Composants
@@ -35,7 +37,7 @@ const expression = ref('');
 const operationsHistory = ref<string[]>([]);
 const timer = ref<number | null>(null);
 const gameStarted = ref(false);
-const gameResult = ref<GameResult>(GameResult.IN_PROGRESS);
+const gameResult = ref<GameResultType>(GameResult.IN_PROGRESS);
 const showNewGameButton = ref(false);
 const showSolutions = ref(false);
 const solutions = ref<Solution[]>([]);
@@ -232,7 +234,7 @@ const handleOperatorInput = (value: string) => {
           // Extraire les valeurs de l'opération (format: "a op b = result")
           const match = opText.match(/(\d+\.?\d*)\s*([+\-×÷])\s*(\d+\.?\d*)\s*=\s*(\d+\.?\d*)/);
           if (match) {
-            const [, leftVal, op, rightVal, resultVal] = match;
+            const [, leftVal, _, rightVal, resultVal] = match;
 
             // Marquer les tuiles utilisées comme sélectionnées
             const leftTile = tiles.value.find(t => t.value === parseFloat(leftVal) && !t.isSelected);
@@ -475,8 +477,7 @@ onMounted(() => {
 
   // Détection des appareils tactiles
   isTouchDevice.value = ('ontouchstart' in window) || 
-                        (navigator.maxTouchPoints > 0) || 
-                        (navigator.msMaxTouchPoints > 0);
+                        (navigator.maxTouchPoints > 0);
 
   if(!isTouchDevice.value) {
     window.addEventListener('keydown', handleKeydown);
