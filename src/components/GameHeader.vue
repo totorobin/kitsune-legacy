@@ -5,18 +5,17 @@ import { MAX_TIME } from '../types/game';
 const props = defineProps<{
   targetNumber: number;
   timeLeft: number;
-  showGameElements: boolean;
+  gameTime: number;
 }>();
 
 // Format du temps restant
 const formattedTime = computed(() => {
-  const seconds = props.timeLeft % 60;
-  return `${seconds.toString().padStart(2, '0')}`;
+  return `${props.timeLeft.toString().padStart(2, '0')}`;
 });
 
 // Pourcentage de temps restant pour la barre de progression
 const timeLeftPercentage = computed(() => {
-  return (props.timeLeft / MAX_TIME) * 100;
+  return (props.timeLeft / props.gameTime) * 100;
 });
 
 // Couleur de la barre de progression en fonction du temps restant
@@ -32,22 +31,17 @@ const progressBarColor = computed(() => {
 </script>
 
 <template>
-  <div class="header">
-    <div class="logo-container">
-      <img src="/kitsune-logo.png" alt="Kitsune Logo" class="logo" />
-    </div>
-    <div v-if="showGameElements" class="target-number">Nombre à trouver: {{ targetNumber }}</div>
-    <div v-if="showGameElements" class="timer-container">
-      <div class="timer">Temps restant: {{ formattedTime }}s</div>
-      <div class="progress-bar-container">
-        <div 
-          class="progress-bar" 
-          :style="{
-            width: timeLeftPercentage + '%',
-            backgroundColor: progressBarColor
-          }"
-        ></div>
-      </div>
+  <div class="target-number">Nombre à trouver: {{ targetNumber }}</div>
+  <div class="timer-container">
+    <div class="timer">Temps restant: {{ formattedTime }}s</div>
+    <div class="progress-bar-container">
+      <div 
+        class="progress-bar" 
+        :style="{
+          width: timeLeftPercentage + '%',
+          backgroundColor: progressBarColor
+        }"
+      ></div>
     </div>
   </div>
 </template>

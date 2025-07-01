@@ -1,5 +1,5 @@
 {
-  "name": "Sofa-playground",
+  "name": "playground",
   "image": "mcr.microsoft.com/devcontainers/typescript-node",
   "runArgs":["--sysctl", "net.ipv6.conf.all.disable_ipv6=1"],
   "postCreateCommand": "bash .devcontainer/setup.sh"

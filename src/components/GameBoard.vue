@@ -1,8 +1,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue';
-import type { Tile, Operator, GameResultType } from '../types/game';
-import { MAX_TIME, GameResult } from '../types/game';
+import { type Tile, type Operator, MAX_TIME, GameResult } from '../types/game';
 import { generateRandomTiles, generateTargetNumber, performOperation } from '../utils/gameLogic';
 import { findSolution } from '../utils/solutionFinder2';
 
@@ -33,6 +32,7 @@ type GameMode = 'auto' | 'manual';
 const tiles = ref<Tile[]>([]);
 const targetNumber = ref(0);
 const timeLeft = ref(MAX_TIME);
+const gameTime = ref(MAX_TIME)
 const expression = ref('');
 const operationsHistory = ref<string[]>([]);
 const timer = ref<number | null>(null);
@@ -146,6 +146,7 @@ const startManualGame = (config: { targetNumber: number, tiles: Tile[], gameTime
   tiles.value = config.tiles;
   targetNumber.value = config.targetNumber;
   timeLeft.value = config.gameTime; // Utiliser le temps de jeu personnalisé
+  gameTime.value = config.gameTime;
   expression.value = '';
   operationsHistory.value = [];
   gameStarted.value = true;
@@ -173,6 +174,7 @@ const startNewGame = () => {
     tiles.value = generateRandomTiles();
     targetNumber.value = generateTargetNumber();
     timeLeft.value = MAX_TIME;
+    gameTime.value = MAX_TIME;
     expression.value = '';
     operationsHistory.value = [];
     gameStarted.value = true;
@@ -493,9 +495,10 @@ onUnmounted(() => {
 <template>
   <div class="game-board">
     <GameHeader 
+      v-if="showGameElements"
       :targetNumber="targetNumber"
       :timeLeft="timeLeft"
-      :showGameElements="showGameElements"
+      :gameTime="gameTime"
     />
 
     <VictoryOverlay 

@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import GameBoard from './components/GameBoard.vue'
+import AppHeader from './components/AppHeader.vue'
 </script>
 
 <template>
+    <AppHeader />
     <GameBoard />
 </template>
 
