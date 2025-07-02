@@ -22,7 +22,7 @@ export const GameResult = {
 export type GameResultType = typeof GameResult[keyof typeof GameResult];
 
 // Constantes du jeu
-export const MAX_TIME = 40; // Temps maximum en secondes
+export const MAX_TIME = 5; // Temps maximum en secondes
 
 // Mapping des touches spéciales pour les tuiles avec des valeurs > 10
 export const SPECIAL_KEY_MAPPING = {

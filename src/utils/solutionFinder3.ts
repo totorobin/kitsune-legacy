@@ -1,38 +1,69 @@
+export abstract class Operation {
+    abstract value: number
+    operator: string | null
+    tilesValues: number[]
+    transform: '-' | '/' | null
 
-abstract class Operation {
-   abstract value: number
-   operator: string | null
-   tilesValues: number[]    
-
-   constructor(tiles: Operation[]) {
+    constructor(tiles: Operation[]) {
         this.operator = null
         this.tilesValues = tiles.flatMap(t => t.tilesValues)
+        this.transform = null
     }
-    abstract toString() : string
+
+    abstract toString(): string
+
     toNegativeValue() {
-        this.value = - this.value
+        this.transform = this.transform === '-' ? null : '-'
         return this
     }
-    abstract clone() : Operation
+
+    isNegatif() {
+        return this.transform === '-'
+    }
+
+    toDivisor() {
+        this.transform = this.transform === '/' ? null : '/'
+        return this
+    }
+
+    isDivisor() {
+        return this.transform === '/'
+    }
+
+    weightValue() {
+        return (this.isNegatif() ? -1 : 1) * this.value
+    }
+
+    abstract clone(): Operation
+
+
 }
 
-class Tile extends Operation {
+export class Tile extends Operation {
     value: number
-  
+
     constructor(value: number) {
         super([])
         this.value = value
-        this.tilesValues = [ value ]
+        this.tilesValues = [value]
     }
+
     toString() {
         return `${this.tilesValues[0]}`
     }
+
+    weightValue() {
+        return (this.isNegatif() ? -1 : 1) * this.value
+    }
+
     clone(): Tile {
-       return new Tile(this.value)
+        const tile = new Tile(this.value)
+        tile.transform = this.transform
+        return tile
     }
 }
 
-class Multiplication extends Operation {
+export class Multiplication extends Operation {
     value: number
     tiles: Operation[]
 
@@ -41,21 +72,29 @@ class Multiplication extends Operation {
         this.operator = 'x'
         this.value = tiles.reduce((acc, curr) => acc * curr.value, 1)
         this.tilesValues = tiles.flatMap(t => t.tilesValues)
-        this.tiles = tiles.flatMap(t => t instanceof Multiplication ? t.tiles : t ).sort((a, b) => b.value - a.value)
+        this.tiles = tiles.flatMap(t => t instanceof Multiplication ? t.tiles : t).sort((a, b) => b.weightValue() - a.weightValue())
     }
+
     toString() {
-        return this.tiles.reduce((acc, curr , index) => {
+        return this.tiles.reduce((acc, curr, index) => {
             const s = curr instanceof Tile ? curr.toString() : '(' + curr.toString() + ')'
-            if(index === 0) return s
+            if (index === 0) return s
             return acc + ' x ' + s
         }, '')
     }
+
+    weightValue() {
+        return (this.isNegatif() ? -1 : 1) * this.value + (0.1 * this.tiles.length)
+    }
+
     clone() {
-        return new Multiplication(this.tiles)
+        const tile = new Multiplication(this.tiles)
+        tile.transform = this.transform
+        return tile
     }
 }
 
-class Addition extends Operation {
+export class Addition extends Operation {
     value: number
     tiles: Operation[]
 
@@ -64,78 +103,97 @@ class Addition extends Operation {
         this.operator = '+'
         this.value = tiles.reduce((acc, curr) => acc + curr.value, 0)
         this.tilesValues = tiles.flatMap(t => t.tilesValues)
-        this.tiles = tiles.flatMap(t => t instanceof Addition ? t.tiles : t ).sort((a, b) => b.value - a.value)
+        this.tiles = tiles.flatMap(t => t instanceof Addition ? t.tiles : t).sort((a, b) => b.weightValue() - a.weightValue())
     }
+
     substract(tile: Operation) {
         this.value -= tile.value
         this.tilesValues.push(...tile.tilesValues)
         this.tiles.push(...(tile instanceof Addition ? tile.tiles.map(tile => {
-          return tile.clone().toNegativeValue()
-        }) : [tile.clone().toNegativeValue()] ))
+            return tile.clone().toNegativeValue()
+        }) : [tile.clone().toNegativeValue()]))
+        this.tiles.sort((a, b) => b.weightValue() - a.weightValue())
         return this
     }
-        toString() {
-        return this.tiles.reduce((acc, curr , index) => {
-            const s = curr instanceof Tile ? curr.toString() : '(' + curr.toString() + ')'
-            if(index === 0) return s
-            if(curr.value < 0)
-                return acc + ' - ' + s
-            return acc + ' + ' + s
+
+    weightValue() {
+        return (this.isNegatif() ? -1 : 1) * this.value + (0.1 * this.tiles.length)
+    }
+
+    toString() {
+        return this.tiles.reduce((acc, curr, index) => {
+            if (index === 0) return curr.toString()
+            if (curr.isNegatif())
+                return acc + ' - ' + curr.toString()
+            return acc + ' + ' + curr.toString()
         }, '')
     }
+
+
     clone() {
-        return new Addition(this.tiles)
+        const tile = new Addition(this.tiles)
+        tile.transform = this.transform
+        return tile
     }
 }
 
-class Division extends Operation {
+export class Division extends Operation {
     value: number
     left: Operation
     right: Operation
-     constructor(left: Operation, rigth: Operation) {
+
+    constructor(left: Operation, rigth: Operation) {
         super([left, rigth])
         this.operator = '÷'
         this.value = left.value / rigth.value
         this.left = left
         this.right = rigth
     }
+
     toString(): string {
-        return ((this.left instanceof Tile || this.left instanceof Multiplication) ? this.left.toString() : '(' + this.left.toString() + ')') + ' / ' +  (this.right instanceof Tile ? this.right.toString() : '(' + this.right.toString() + ')') 
+        return ((this.left instanceof Tile || this.left instanceof Multiplication) ? this.left.toString() : '(' + this.left.toString() + ')') + ' / ' + (this.right instanceof Tile ? this.right.toString() : '(' + this.right.toString() + ')')
     }
+
+    weightValue() {
+        return (this.isNegatif() ? -1 : 1) * this.value + 0.2
+    }
+
     clone() {
-        return new Division(this.left,this.right)
+        const tile = new Division(this.left, this.right)
+        tile.transform = this.transform
+        return tile
     }
 }
 
 
 export interface Solution {
-    operations : string[], // liste des opérations au format "a op b = r"
-    result : number,
-    distance : number,
-    oneLineOperation : string, // une seule opération au format "(a op b) op c op (d op e) = r"
-    nbTiles : number // nombre de tuiles utilisées
+    operations: string[], // liste des opérations au format "a op b = r"
+    result: number,
+    distance: number,
+    oneLineOperation: string, // une seule opération au format "(a op b) op c op (d op e) = r"
+    nbTiles: number // nombre de tuiles utilisées
 }
 
-export function findSolution(tiles: number[], targetNumber: number) : Solution[] {
-   const iTiles : Operation[] = tiles.map(tile => new Tile(tile))
+export function findSolution(tiles: number[], targetNumber: number): Solution[] {
+    const iTiles: Operation[] = tiles.map(tile => new Tile(tile))
 
-   const solutions = iFindSolution(iTiles, targetNumber);
+    const solutions = iFindSolution(iTiles, targetNumber);
 
-   // formater les solutions dans le format attendu
-   return solutions.map(operation => {
-       return {
-           operations: [],
-           result: operation.value,
-           distance: Math.abs(operation.value - targetNumber),
-           oneLineOperation:  `${operation.toString()} = ${operation.value}`,
-           nbTiles: operation.tilesValues.length
-       };
-   }).sort((a, b) => a.nbTiles - b.nbTiles);
+    // formater les solutions dans le format attendu
+    return solutions.map(operation => {
+        return {
+            operations: [],
+            result: operation.value,
+            distance: Math.abs(operation.value - targetNumber),
+            oneLineOperation: `${operation.toString()} = ${operation.value}`,
+            nbTiles: operation.tilesValues.length
+        };
+    }).sort((a, b) => a.nbTiles - b.nbTiles);
 }
 
-function iFindSolution(tiles: Operation[], targetNumber: number) : Operation[] {
+function iFindSolution(tiles: Operation[], targetNumber: number): Operation[] {
     console.log('iFIndSolution', tiles, targetNumber)
-    if(tiles.length <= 1) {
+    if (tiles.length <= 1) {
         return tiles as Operation[];
     }
 
@@ -146,7 +204,7 @@ function iFindSolution(tiles: Operation[], targetNumber: number) : Operation[] {
     for (let i = 0; i < sortedTiles.length - 1; i++) {
         const a = sortedTiles[i];
         // Pour chaque tuile restante, tuile b
-        for (let j = i+1; j < sortedTiles.length; j++) {
+        for (let j = i + 1; j < sortedTiles.length; j++) {
             const b = sortedTiles[j];
 
             // Créer une liste d'opérations possibles avec a et b
@@ -161,11 +219,16 @@ function iFindSolution(tiles: Operation[], targetNumber: number) : Operation[] {
             // Pour chaque tuile opération
             for (const operation of operations) {
                 // Appeler la fonction iFindSolution avec une nouvelle liste de tuiles
-                const newTiles = [operation, ...sortedTiles.filter((_val, index) => index !== i && index !==j )];
+                const newTiles = [operation, ...sortedTiles.filter((_val, index) => index !== i && index !== j)];
                 results.push(...iFindSolution(newTiles, targetNumber));
             }
+
+            // si la tuile suivante a la même valeur, on la passe
+            if (j + 1 < sortedTiles.length && b.value === sortedTiles[j + 1].value) {
+                j++;
+            }
         }
-    } 
+    }
 
     return results.reduce<Operation[]>((acc, curr) => {
         // Retourner les résultats avec la distance minimale
@@ -187,7 +250,7 @@ function iFindSolution(tiles: Operation[], targetNumber: number) : Operation[] {
             return [curr];
         }
         // TODO: tester si doublon déjà présent dans acc et retourner une liste sans curr
-        if(acc.some(op => op.toString() === curr.toString()))
+        if (acc.some(op => op.toString() === curr.toString()))
             return acc
 
         // sinon on retourne tout
@@ -196,14 +259,19 @@ function iFindSolution(tiles: Operation[], targetNumber: number) : Operation[] {
 }
 
 
-function createOperations(a: Operation, b: Operation) : Operation[] {
-    const operations : Operation[] = [];
+function createOperations(a: Operation, b: Operation): Operation[] {
+    const operations: Operation[] = [];
 
     // a est forcément plus petit (ou égal) que b
     // les opérations possibles sont donc:
 
     // a + b
-    operations.push(new Addition([a, b]))
+    if ((b instanceof Addition && b.tiles.some(t => t.isNegatif() && t.value === a.value)) ||
+        (a instanceof Addition && a.tiles.some(t => t.isNegatif() && t.value === b.value))) {
+        // on ne fait pas une addition si on déjà soustrait la même valeur
+    } else {
+        operations.push(new Addition([a, b]))
+    }
 
     // a x b (seulement si a != 1)
     if (a.value !== 1) {
@@ -212,16 +280,24 @@ function createOperations(a: Operation, b: Operation) : Operation[] {
 
     // b - a (seulement si a != b)
     if (a.value !== b.value) {
-        // la soustraction est une addition avec -a
-        operations.push(new Addition([b]).substract(a))
+        if (b instanceof Addition && b.tiles.some(t => !t.isNegatif() && t.value === a.value)) {
+            // on ne fait pas une soustraction si on déjà ajouté la même valeur
+        } else {
+            // la soustraction est une addition avec -a
+            operations.push(new Addition([b]).substract(a))
+        }
     }
 
     // b / a (seulement si a != 1 et que le résultat est un nombre entier)
     if (a.value !== 1 && b.value % a.value === 0) {
-        operations.push(new Division(b, a));
+        if (b instanceof Multiplication && b.tiles.some(t => t.value === a.value)) {
+            // on ne divise pas par a si on déjà a multiplié par a
+        } else {
+            operations.push(new Division(b, a));
+        }
     }
 
 
-   // Filter les operations inutiles
+    // Filter les operations inutiles
     return operations.filter(op => !op.tilesValues.includes(op.value));
 }
