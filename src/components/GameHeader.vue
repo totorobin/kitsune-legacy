@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { MAX_TIME } from '../types/game';
 
 const props = defineProps<{
   targetNumber: number;
@@ -47,10 +46,6 @@ const progressBarColor = computed(() => {
 </template>
 
 <style scoped>
-.header {
-  text-align: center;
-  margin-bottom: 20px;
-}
 
 .target-number {
   font-size: 24px;
@@ -69,17 +64,6 @@ const progressBarColor = computed(() => {
   font-size: 20px;
   color: #666;
   text-align: center;
-}
-
-.logo-container {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 15px;
-}
-
-.logo {
-  max-height: 80px;
-  margin-bottom: 10px;
 }
 
 .progress-bar-container {

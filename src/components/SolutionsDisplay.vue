@@ -1,12 +1,7 @@
 <script setup lang="ts">
 // Interface Solution pour la compatibilité
-interface Solution {
-  operations: string[];
-  result: number;
-  distance: number;
-  oneLineOperation: string;
-};
 import { computed } from 'vue';
+import type { Solution } from '../utils/solutionFinder3';
 
 const props = withDefaults(defineProps<{
   solutions: Solution[];
@@ -35,7 +30,7 @@ const groupedSolutions = computed(() => {
   // Donc on estime que le nombre de tuiles est le nombre d'opérations + 1
   const validSolutions = solutionsWithExpressions.value.map(solution => ({
     ...solution,
-    tilesUsed: solution.operations.length + 1
+    tilesUsed: solution.nbTiles
   }));
 
   // S'assurer que les solutions sont uniques par leur expression concise

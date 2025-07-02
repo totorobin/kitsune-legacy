@@ -1,9 +1,9 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue';
-import { type Tile, type Operator, MAX_TIME, GameResult } from '../types/game';
+import { type Tile, type Operator, MAX_TIME, GameResult , type GameResultType } from '../types/game';
 import { generateRandomTiles, generateTargetNumber, performOperation } from '../utils/gameLogic';
-import { findSolution } from '../utils/solutionFinder2';
+import { findSolution } from '../utils/solutionFinder3';
 
 // Interface Solution pour la compatibilité
 interface Solution {
