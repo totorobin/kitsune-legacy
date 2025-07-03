@@ -167,40 +167,40 @@ export class Division extends Operation {
 
 
 export interface Solution {
-    operations: string[], // liste des opérations au format "a op b = r"
     result: number,
     distance: number,
-    oneLineOperation: string, // une seule opération au format "(a op b) op c op (d op e) = r"
+    operation: string, // une seule opération au format "(a op b) op c op (d op e) = r"
     nbTiles: number // nombre de tuiles utilisées
 }
 
-export function findSolution(tiles: number[], targetNumber: number): Solution[] {
-    const iTiles: Operation[] = tiles.map(tile => new Tile(tile))
+let minDistance = Number.MAX_SAFE_INTEGER;
 
-    const solutions = iFindSolution(iTiles, targetNumber);
-
-    // formater les solutions dans le format attendu
-    return solutions.map(operation => {
-        return {
-            operations: [],
-            result: operation.value,
-            distance: Math.abs(operation.value - targetNumber),
-            oneLineOperation: `${operation.toString()} = ${operation.value}`,
-            nbTiles: operation.tilesValues.length
-        };
-    }).sort((a, b) => a.nbTiles - b.nbTiles);
+export function tileToSolution(tile: Tile, targetNumber: number): Solution {
+    return ({ result: tile.value, distance: Math.abs(tile.value - targetNumber), operation: `${tile.toString()} = ${tile.value}`, nbTiles: tile.tilesValues.length})
 }
 
-function iFindSolution(tiles: Operation[], targetNumber: number): Operation[] {
-    console.log('iFIndSolution', tiles, targetNumber)
-    if (tiles.length <= 1) {
-        return tiles as Operation[];
+export function findSolution(tiles: Operation[], targetNumber: number) {
+
+    if (tiles.length === 1) {
+        const distance = Math.abs(tiles[0].value - targetNumber)
+        if( distance <= minDistance) {
+            minDistance = distance
+            self.postMessage({
+                type: 'partial',
+                solution: {
+                    result: tiles[0].value,
+                    distance,
+                    operation: `${tiles[0].toString()} = ${tiles[0].value}`,
+                    nbTiles: tiles[0].tilesValues.length
+                }
+            })
+        }
+        return
     }
 
     // Trier les tuiles par valeur croissante
     const sortedTiles = [...tiles].sort((a, b) => a.value - b.value);
 
-    const results: Operation[] = [];
     for (let i = 0; i < sortedTiles.length - 1; i++) {
         const a = sortedTiles[i];
         // Pour chaque tuile restante, tuile b
@@ -213,14 +213,24 @@ function iFindSolution(tiles: Operation[], targetNumber: number): Operation[] {
             // Vérifier si une des solutions correspond au targetNumber
             const exactMatch = operations.find(op => op.value === targetNumber);
             if (exactMatch) {
-                return [exactMatch];
+                minDistance = 0;
+                self.postMessage({
+                    type: 'partial',
+                    solution: {
+                        result: exactMatch.value,
+                        distance: 0,
+                        operation: `${exactMatch.toString()} = ${exactMatch.value}`,
+                        nbTiles:exactMatch.tilesValues.length
+                    }
+                })
+                return
             }
 
             // Pour chaque tuile opération
             for (const operation of operations) {
                 // Appeler la fonction iFindSolution avec une nouvelle liste de tuiles
                 const newTiles = [operation, ...sortedTiles.filter((_val, index) => index !== i && index !== j)];
-                results.push(...iFindSolution(newTiles, targetNumber));
+                findSolution(newTiles, targetNumber);
             }
 
             // si la tuile suivante a la même valeur, on la passe
@@ -229,33 +239,6 @@ function iFindSolution(tiles: Operation[], targetNumber: number): Operation[] {
             }
         }
     }
-
-    return results.reduce<Operation[]>((acc, curr) => {
-        // Retourner les résultats avec la distance minimale
-        if (acc.length === 0) {
-            return [curr];
-        }
-        const distance = Math.abs(curr.value - targetNumber);
-        const minDistance = Math.abs(acc[0].value - targetNumber);
-        if (distance < minDistance) {
-            return [curr];
-        } else if (distance === minDistance) {
-            return [...acc, curr];
-        } else {
-            return acc;
-        }
-    }, []).reduce<Operation[]>((acc, curr) => {
-        // supprimer les doublons
-        if (acc.length === 0) {
-            return [curr];
-        }
-        // TODO: tester si doublon déjà présent dans acc et retourner une liste sans curr
-        if (acc.some(op => op.toString() === curr.toString()))
-            return acc
-
-        // sinon on retourne tout
-        return [...acc, curr]
-    }, [])
 }
 
 
@@ -301,3 +284,42 @@ function createOperations(a: Operation, b: Operation): Operation[] {
     // Filter les operations inutiles
     return operations.filter(op => !op.tilesValues.includes(op.value));
 }
+
+
+// Define the message types for communication with the worker
+export interface WorkerRequest {
+    tiles: number[]
+    targetNumber: number
+}
+
+export interface WorkerResponse {
+    type: 'partial' | 'complete' | 'error'
+    solution?: Solution
+    error?: string
+}
+
+
+// Listen for messages from the main thread
+self.addEventListener('message', (event: MessageEvent<WorkerRequest>) => {
+    const { tiles, targetNumber } = event.data;
+
+    try {
+        console.log('Calculating solutions...');
+        minDistance = Number.MAX_SAFE_INTEGER;
+        const myTiles = tiles.map((tile : number) => new Tile(tile))
+        // @ts-ignore - findSolution will be injected into the worker scope
+        findSolution(myTiles, targetNumber);
+
+        // Send the solutions back to the main thread
+        self.postMessage({
+            type: 'complete'
+        });
+    } catch (error) {
+        console.error('Error in solution worker:', error);
+        self.postMessage({
+            type: 'error',
+            solutions: [],
+            error: error instanceof Error ? error.message : String(error)
+        });
+    }
+});

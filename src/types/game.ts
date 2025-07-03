@@ -8,21 +8,23 @@ export interface Tile {
 
 export type Operator = '+' | '-' | '×' | '÷';
 
-// Types pour les modes de jeu
+// Types pour les modes de je
 export type GameMode = 'auto' | 'manual';
 
 // État des résultats du jeu
 export const GameResult = {
   IN_PROGRESS: 0,  // Jeu en cours
-  EXACT_WIN: 1,    // Victoire avec résultat exact
-  BEST_WIN: 2,     // Victoire avec meilleur résultat possible
-  LOSS: 3,         // Défaite
+  TIME_UP: 1,      // temps écoulé
+  EXACT_WIN: 2,    // Victoire avec résultat exact
+  BEST_WIN: 3,     // Victoire avec meilleur résultat possible
+  LOSS: 4,         // Défaite
+  NOT_STARTED: 5   // Jeu non démarré
 } as const;
 
 export type GameResultType = typeof GameResult[keyof typeof GameResult];
 
 // Constantes du jeu
-export const MAX_TIME = 5; // Temps maximum en secondes
+export const MAX_TIME = 40; // Temps maximum en secondes
 
 // Mapping des touches spéciales pour les tuiles avec des valeurs > 10
 export const SPECIAL_KEY_MAPPING = {
