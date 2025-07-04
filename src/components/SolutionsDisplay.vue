@@ -1,65 +1,32 @@
 <script setup lang="ts">
 // Interface Solution pour la compatibilité
-interface Solution {
-  operations: string[];
-  result: number;
-  distance: number;
-  oneLineOperation: string;
-};
 import { computed } from 'vue';
+import type { Solution } from '../utils/solutionFinder3';
 
 const props = withDefaults(defineProps<{
   solutions: Solution[];
   targetNumber: number;
   showSolutions: boolean;
-  playerHasWon: boolean;
   isCalculating?: boolean;
 }>(), {
   isCalculating: false
 });
 
-// Utiliser directement oneLineOperation comme expression concise
-const solutionsWithExpressions = computed(() => {
-  return props.solutions.map(solution => ({
-    ...solution,
-    conciseExpression: solution.oneLineOperation
-  }));
-});
 
 // Regrouper les solutions par nombre d'opérations
 const groupedSolutions = computed(() => {
-  const groups: Record<number, Array<Solution & { conciseExpression: string, tilesUsed: number }>> = {};
-
-  // Utiliser le nombre d'opérations comme approximation du nombre de tuiles utilisées
-  // Chaque opération utilise 2 tuiles, mais les tuiles peuvent être réutilisées dans les opérations suivantes
-  // Donc on estime que le nombre de tuiles est le nombre d'opérations + 1
-  const validSolutions = solutionsWithExpressions.value.map(solution => ({
-    ...solution,
-    tilesUsed: solution.operations.length + 1
-  }));
-
-  // S'assurer que les solutions sont uniques par leur expression concise
-  const uniqueExpressions = new Map();
-
-  validSolutions.forEach(solution => {
-    // N'ajouter cette solution que si son expression concise est unique
-    if (!uniqueExpressions.has(solution.conciseExpression)) {
-      uniqueExpressions.set(solution.conciseExpression, solution);
-
-      const tilesCount = solution.tilesUsed;
-      if (!groups[tilesCount]) {
-        groups[tilesCount] = [];
-      }
-      groups[tilesCount].push(solution);
+  const grouped = props.solutions.reduce((acc, solution) => {
+    const key = solution.nbTiles;
+    if (!acc[key]) {
+      acc[key] = [];
     }
-  });
+    acc[key].push(solution);
+    return acc;
+  }, {} as Record<number, Solution[]>);
 
-  // Convertir en tableau pour l'affichage
-  return Object.entries(groups).map(([tilesCount, solutions]) => ({
-    tilesCount: parseInt(tilesCount),
-    solutions: solutions
-  })).sort((a, b) => a.tilesCount - b.tilesCount); // Trier par nombre de tuiles croissant
+  return Object.values(grouped);
 });
+
 </script>
 
 <template>
@@ -67,12 +34,12 @@ const groupedSolutions = computed(() => {
     <h2>Solutions</h2>
 
     <!-- Aucune solution trouvée (seulement si le calcul est terminé) -->
-    <div v-if="!isCalculating && solutions.length === 0" class="no-solutions">
+    <div v-if="solutions.length === 0" class="no-solutions">
       Aucune solution trouvée avec ces nombres.
     </div>
 
     <!-- Afficher les solutions quand elles sont disponibles (et le calcul est terminé) -->
-    <div v-else-if="!isCalculating && solutions.length > 0">
+    <div v-else-if="solutions.length > 0">
       <div class="best-result">
         <p v-if="solutions[0].distance === 0">
           <strong>Résultat exact :</strong> {{ targetNumber }}
@@ -84,30 +51,20 @@ const groupedSolutions = computed(() => {
       </div>
 
       <div class="solutions-list">
-        <div v-for="(group, groupIndex) in groupedSolutions" :key="'group-'+groupIndex" class="solutions-group">
+        <div v-for="(solutions, groupIndex) in groupedSolutions" :key="'group-'+groupIndex" class="solutions-group">
           <div class="group-header">
-            <h3>Solutions avec {{ group.tilesCount }} tuiles</h3>
-            <div class="result-badge" v-if="group.solutions[0].distance === 0">Exact: {{ targetNumber }}</div>
-            <div class="result-badge" v-else>Résultat: {{ group.solutions[0].result }}</div>
+            <h3>Solutions avec {{ solutions[0].nbTiles }} tuiles</h3>
+            <div class="result-badge" v-if="solutions[0].distance === 0">Exact: {{ targetNumber }}</div>
+            <div class="result-badge" v-else>Résultat: {{ solutions[0].result }}</div>
           </div>
 
           <div 
-            v-for="(solution, index) in group.solutions" 
+            v-for="(solution, index) in solutions"
             :key="'solution-'+groupIndex+'-'+index"
             class="solution-item"
           >
             <div class="concise-expression">
-              {{ solution.conciseExpression }}
-            </div>
-            <div v-if="solution.operations.length > 0" class="toggle-details">
-              <button @click="($event.target as HTMLElement).closest?.('.solution-item')?.classList.toggle('show-details')">
-                Voir les détails
-              </button>
-            </div>
-            <div class="operations">
-              <div v-for="(operation, opIndex) in solution.operations" :key="opIndex" class="operation">
-                {{ operation }}
-              </div>
+              {{ solution.operation }}
             </div>
           </div>
         </div>

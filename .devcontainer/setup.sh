@@ -1,3 +1,3 @@
 npm install --global pnpm
 
-pnpm install -i
+pnpm install

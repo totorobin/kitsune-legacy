@@ -3,13 +3,15 @@ import ConfettiExplosion from './ConfettiExplosion.vue';
 import type { GameResultType } from '../types/game';
 import { GameResult } from '../types/game';
 import { computed, ref, watch } from 'vue';
-import { type Solution } from "../utils/solutionFinder2";
+import { type Solution } from "../utils/solutionFinder3";
+import LoadingSpinner from "./LoadingSpinner.vue";
 
 const props = defineProps<{
   gameResult: GameResultType;
   showNewGameButton: boolean;
-  solutions?: Solution[];
+  solutions: Solution[];
   targetNumber?: number;
+  isCalculating: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -42,12 +44,16 @@ const bestSolution = computed(() => {
 </script>
 
 <template>
-  <div v-if="gameResult !== GameResult.IN_PROGRESS && visible" class="victory-overlay" @click="closeOverlay">
+  <div v-if="gameResult !== GameResult.IN_PROGRESS && gameResult != GameResult.NOT_STARTED && visible" class="victory-overlay" @click="closeOverlay">
     <div class="victory-content" @click.stop>
       <div class="victory-text">
         <template v-if="gameResult === GameResult.EXACT_WIN">GAGNÉ !</template>
         <template v-else-if="gameResult === GameResult.BEST_WIN">BIEN JOUÉ !</template>
-        <template v-else-if="gameResult === GameResult.LOSS">TEMPS ÉCOULÉ</template>
+        <template v-else-if="gameResult === GameResult.LOSS || gameResult === GameResult.TIME_UP">TEMPS ÉCOULÉ</template>
+      </div>
+      <div v-if="gameResult === GameResult.TIME_UP && isCalculating" class="calculating-content">
+          <LoadingSpinner text="Recherche des solutions..." />
+          <p class="calculating-info">La recherche peut prendre quelques secondes...</p>
       </div>
       <div class="victory-subtitle">
         <template v-if="gameResult === GameResult.EXACT_WIN">Vous avez trouvé le nombre exact !</template>
@@ -65,12 +71,12 @@ const bestSolution = computed(() => {
             <span v-if="bestSolution.distance === 0">Résultat exact</span>
             <span v-else>Meilleur résultat: {{ bestSolution.result }}</span>
           </div>
-          <div class="solution-expression">{{ bestSolution.oneLineOperation }}</div>
+          <div class="solution-expression">{{ bestSolution.operation }}</div>
         </div>
       </div>
 
     </div>
-    <ConfettiExplosion :active="gameResult !== GameResult.LOSS" :count="150" />
+    <ConfettiExplosion :active="gameResult !== GameResult.LOSS && gameResult != GameResult.TIME_UP" :count="150" />
   </div>
 </template>
 
@@ -201,5 +207,55 @@ const bestSolution = computed(() => {
   font-weight: bold;
   color: #333;
   text-align: center;
+}
+
+.calculating-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.85);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.calculating-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: rgba(255, 255, 255, 0.1);
+  padding: 40px;
+  border-radius: 20px;
+  max-width: 600px;
+  width: 100%;
+  text-align: center;
+}
+
+.timeout-message {
+  font-size: 48px;
+  font-weight: 900;
+  color: var(--kitsune-orange);
+  margin-bottom: 30px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.6);
+  animation: pulse 2s infinite;
+}
+
+.calculating-info {
+  margin-top: 15px;
+  font-size: 18px;
+  color: white;
+  font-style: italic;
+  opacity: 0.8;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.05); opacity: 0.8; }
+  100% { transform: scale(1); opacity: 1; }
 }
 </style>

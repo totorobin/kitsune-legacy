@@ -69,8 +69,10 @@ function iFindSolution(tiles: Tile[], targetNumber: number) : Operation[] {
             return [exactMatch];
         }
 
+        const filteredOperations = operations.filter(op => !op.tilesValues.includes(op.value));
+
         // Pour chaque tuile opération
-        for (const operation of operations) {
+        for (const operation of filteredOperations) {
             // Appeler la fonction iFindSolution avec une nouvelle liste de tuiles
             const newTiles = [operation, ...remainingTiles];
             results.push(...iFindSolution(newTiles, targetNumber));

@@ -1,19 +1,8 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue';
-import type { Tile, Operator, GameResultType } from '../types/game';
-import { MAX_TIME, GameResult } from '../types/game';
+import { type Tile, type Operator, MAX_TIME, GameResult , type GameResultType } from '../types/game';
 import { generateRandomTiles, generateTargetNumber, performOperation } from '../utils/gameLogic';
-import { findSolution } from '../utils/solutionFinder2';
-
-// Interface Solution pour la compatibilité
-interface Solution {
-  operations: string[];
-  result: number;
-  distance: number;
-  oneLineOperation: string;
-  nbTiles: number;
-}
 
 // Composants
 import GameHeader from './GameHeader.vue';
@@ -22,25 +11,27 @@ import OperatorsPanel from './OperatorsPanel.vue';
 import ExpressionDisplay from './ExpressionDisplay.vue';
 import VictoryOverlay from './VictoryOverlay.vue';
 import SolutionsDisplay from './SolutionsDisplay.vue';
-import CalculatingOverlay from './CalculatingOverlay.vue';
 import GameModeSelector from './GameModeSelector.vue';
 import ManualGameSetup from './ManualGameSetup.vue';
+import {useSolutionFinder} from "../utils/solutionFinder.ts";
 
 // Types pour les modes de jeu
 type GameMode = 'auto' | 'manual';
+
+// Worker for solution finding
+const solutionFinder = useSolutionFinder()
 
 // État du jeu
 const tiles = ref<Tile[]>([]);
 const targetNumber = ref(0);
 const timeLeft = ref(MAX_TIME);
+const gameTime = ref(MAX_TIME)
 const expression = ref('');
 const operationsHistory = ref<string[]>([]);
 const timer = ref<number | null>(null);
-const gameStarted = ref(false);
-const gameResult = ref<GameResultType>(GameResult.IN_PROGRESS);
+const gameState = ref<GameResultType>(GameResult.NOT_STARTED);
 const showNewGameButton = ref(false);
-const showSolutions = ref(false);
-const solutions = ref<Solution[]>([]);
+const showSolutions = computed(() => gameState.value != GameResult.NOT_STARTED && gameState.value != GameResult.IN_PROGRESS  && !solutionFinder.isSearching.value);
 
 // État pour le mode de jeu
 const gameMode = ref<GameMode>('auto');
@@ -67,65 +58,22 @@ const startTimer = () => {
       timeLeft.value--;
     } else {
       if (timer.value) clearInterval(timer.value);
-      gameStarted.value = false;
-
-      // Quand le temps est écoulé, calculer les solutions possibles
-      calculateSolutions();
+      stopGame();
     }
   }, 1000);
 };
 
-// État pour le chargement des solutions
-const isCalculatingSolutions = ref(false);
 
-// Calculer toutes les solutions possibles
-const calculateSolutions = () => {
+// Calculer toutes les solutions possibles (appelé à la fin du jeu)
+const stopGame = () => {
   // Activer l'indicateur de chargement et afficher le conteneur de solutions
-  isCalculatingSolutions.value = true;
-  showSolutions.value = true;
-  solutions.value = []; // Vider les solutions précédentes pendant le calcul
+  gameState.value = GameResult.TIME_UP;
 
-  // Utiliser seulement les tuiles initiales (ID < 6) pour chercher les solutions
-  const initialTiles = tiles.value.filter(tile => tile.id < 6);
 
-  // Utiliser setTimeout pour ne pas bloquer l'interface pendant le calcul
-  setTimeout(() => {
-    // Extraire les valeurs des tuiles
-    const tileValues = initialTiles.map(tile => tile.value);
-
-    // Trouver les solutions avec solutionFinder2
-    solutions.value = findSolution(tileValues, targetNumber.value);
-
-  // Vérifier si le joueur a trouvé le meilleur résultat possible
-  if (solutions.value.length > 0 && bestPlayerResult.value !== null) {
-    const bestPossibleDistance = solutions.value[0].distance;
-    const playerDistance = Math.abs(bestPlayerResult.value - targetNumber.value);
-
-    if (playerDistance === 0) {
-      // Le joueur a trouvé le résultat exact
-      gameResult.value = GameResult.EXACT_WIN;
-    } else if (playerDistance === bestPossibleDistance) {
-      // Le joueur a trouvé le meilleur résultat possible (pas exact)
-      gameResult.value = GameResult.BEST_WIN;
-    } else {
-      // Le joueur n'a pas trouvé le meilleur résultat
-      gameResult.value = GameResult.LOSS;
-    }
-  } else {
-    // Aucune solution trouvée ou le joueur n'a pas obtenu de résultat
-    gameResult.value = GameResult.LOSS;
-  }
-  // Les solutions sont déjà affichées (showSolutions a été activé avant le calcul)
-
-  // Afficher le bouton nouvelle partie
-  setTimeout(() => {
-    showNewGameButton.value = true;
-  }, 3000);
-
-  // Désactiver l'indicateur de chargement
-  isCalculatingSolutions.value = false;
-  });
-};
+  // Si les solutions ont déjà été calculées par le worker, on les utilise directement
+  if (!solutionFinder.isSearching)
+    calculateWin()
+}
 
 // Sélectionner un mode de jeu
 const selectGameMode = (mode: GameMode) => {
@@ -141,24 +89,58 @@ const selectGameMode = (mode: GameMode) => {
   }
 };
 
+const searchEnded = () => {
+  if(gameState.value === GameResult.TIME_UP)
+     calculateWin()
+}
+
+const calculateWin = () => {
+  // Vérifier si le joueur a trouvé le meilleur résultat possible
+  if (bestPlayerResult.value !== null) {
+    const bestPossibleDistance = solutionFinder.foundSolutions.value[0].distance;
+    const playerDistance = Math.abs(bestPlayerResult.value - targetNumber.value);
+
+    if (playerDistance === 0) {
+      // Le joueur a trouvé le résultat exact
+      gameState.value = GameResult.EXACT_WIN;
+    } else if (playerDistance === bestPossibleDistance) {
+      // Le joueur a trouvé le meilleur résultat possible (pas exact)
+      gameState.value = GameResult.BEST_WIN;
+    } else {
+      // Le joueur n'a pas trouvé le meilleur résultat
+      gameState.value = GameResult.LOSS;
+    }
+  } else {
+    // Le joueur n'a pas obtenu de résultat
+    gameState.value = GameResult.LOSS;
+  }
+  // Afficher le bouton nouvelle partie
+  setTimeout(() => {
+    showNewGameButton.value = true;
+  }, 3000);
+}
+
 // Démarrer une nouvelle partie avec configuration manuelle
 const startManualGame = (config: { targetNumber: number, tiles: Tile[], gameTime: number }) => {
   tiles.value = config.tiles;
   targetNumber.value = config.targetNumber;
   timeLeft.value = config.gameTime; // Utiliser le temps de jeu personnalisé
+  gameTime.value = config.gameTime;
   expression.value = '';
   operationsHistory.value = [];
-  gameStarted.value = true;
   firstOperand.value = null;
   operator.value = null;
   nextId.value = 6; // Réinitialiser l'ID pour les nouvelles tuiles
-  gameResult.value = GameResult.IN_PROGRESS;
+  gameState.value = GameResult.IN_PROGRESS;
   showNewGameButton.value = false;
-  showSolutions.value = false;
-  solutions.value = [];
   bestPlayerResult.value = null;
   showManualSetup.value = false;
+
+  solutionFinder.search(tiles.value.map(tile => tile.value), targetNumber.value, searchEnded)
+
+  // Démarrer le timer
   startTimer();
+
 };
 
 // Démarrer une nouvelle partie
@@ -166,32 +148,17 @@ const startNewGame = () => {
   // Réinitialiser l'interface
   showModeSelector.value = true;
   showManualSetup.value = false;
-  gameStarted.value = false;
 
   if (gameMode.value === 'auto') {
     // Mode automatique: générer des tuiles et un nombre cible aléatoires
-    tiles.value = generateRandomTiles();
-    targetNumber.value = generateTargetNumber();
-    timeLeft.value = MAX_TIME;
-    expression.value = '';
-    operationsHistory.value = [];
-    gameStarted.value = true;
-    firstOperand.value = null;
-    operator.value = null;
-    nextId.value = 6; // Réinitialiser l'ID pour les nouvelles tuiles
-    gameResult.value = GameResult.IN_PROGRESS;
-    showNewGameButton.value = false;
-    showSolutions.value = false;
-    solutions.value = [];
-    bestPlayerResult.value = null;
-    startTimer();
+    startManualGame({ targetNumber: generateTargetNumber(), tiles: generateRandomTiles(), gameTime: MAX_TIME });
   }
   // Pour le mode manuel, on attend que l'utilisateur configure et démarre le jeu
 };
 
 // Gestion des entrées pour les opérateurs
 const handleOperatorInput = (value: string) => {
-  if (!gameStarted.value) return;
+  if (gameState.value !== GameResult.IN_PROGRESS) return;
 
   if (value === 'C') {
     // Réinitialiser l'expression et l'état de l'opération
@@ -287,7 +254,7 @@ const handleOperatorInput = (value: string) => {
 
 // Gestion des clics sur les tuiles numériques
 const handleTileClick = (tile: Tile) => {
-  if (!gameStarted.value || tile.isSelected) return;
+  if (gameState.value !== GameResult.IN_PROGRESS || tile.isSelected) return;
 
   if (!firstOperand.value) {
     // Premier opérande
@@ -331,9 +298,8 @@ const handleTileClick = (tile: Tile) => {
 
       // Vérifier si le joueur a gagné
       if (newTile.value === targetNumber.value) {
-        gameResult.value = GameResult.EXACT_WIN;
+        gameState.value = GameResult.EXACT_WIN;
         if (timer.value) clearInterval(timer.value);
-        gameStarted.value = false;
 
         // Afficher le bouton de nouvelle partie après 3 secondes (après la plupart des confettis)
         setTimeout(() => {
@@ -351,12 +317,12 @@ const handleTileClick = (tile: Tile) => {
 
 // Propriété calculée pour déterminer si les éléments du jeu doivent être affichés
 const showGameElements = computed(() => {
-  return gameStarted.value || showSolutions.value;
+  return gameState.value !== GameResult.NOT_STARTED;
 });
 
 // Gestionnaire d'événements pour les touches du clavier
 const handleKeydown = (event: KeyboardEvent) => {
-  if (!gameStarted.value) return;
+  if (gameState.value !== GameResult.IN_PROGRESS) return;
 
   // Gestion des touches numériques (1-9, 0)
   if (/^[0-9]$/.test(event.key)) {
@@ -493,22 +459,20 @@ onUnmounted(() => {
 <template>
   <div class="game-board">
     <GameHeader 
+      v-if="gameState !== GameResult.NOT_STARTED"
       :targetNumber="targetNumber"
       :timeLeft="timeLeft"
-      :showGameElements="showGameElements"
+      :gameTime="gameTime"
     />
 
-    <VictoryOverlay 
-      :gameResult="gameResult"
+    <VictoryOverlay
+      :gameResult="gameState"
       :showNewGameButton="showNewGameButton"
-      :solutions="solutions"
+      :solutions="solutionFinder.foundSolutions.value"
       :targetNumber="targetNumber"
       @new-game="startNewGame"
-      @close-overlay="gameResult = GameResult.IN_PROGRESS"
-    />
-
-    <CalculatingOverlay
-      :isCalculating="isCalculatingSolutions"
+      @close-overlay="gameState = GameResult.TIME_UP"
+      :isCalculating="solutionFinder.isSearching.value"
     />
 
     <!-- Configuration manuelle du jeu -->
@@ -517,9 +481,9 @@ onUnmounted(() => {
       @start-game="startManualGame" 
     />
 
-    <div class="game-area" v-if="gameStarted || showSolutions">
+    <div class="game-area" v-if="gameState !== GameResult.NOT_STARTED">
       <!-- Bouton pour afficher/masquer les raccourcis clavier (visible uniquement sur desktop) -->
-      <div v-if="!isTouchDevice && gameStarted" class="shortcuts-toggle">
+      <div v-if="!isTouchDevice && gameState === GameResult.IN_PROGRESS" class="shortcuts-toggle">
         <button @click="toggleKeyboardShortcuts" class="toggle-btn">
           {{ showKeyboardShortcuts ? 'Masquer raccourcis' : 'Afficher raccourcis' }}
         </button>
@@ -527,14 +491,14 @@ onUnmounted(() => {
 
       <TilesGrid 
         :tiles="tiles"
-        :gameStarted="gameStarted"
+        :gameStarted="gameState === GameResult.IN_PROGRESS"
         :showGameElements="showGameElements"
         :showKeyboardShortcuts="showKeyboardShortcuts && !isTouchDevice"
         @tile-click="handleTileClick"
       />
 
       <OperatorsPanel
-        :gameStarted="gameStarted"
+        :gameStarted="gameState === GameResult.IN_PROGRESS"
         :hasFirstOperand="!!firstOperand"
         :showGameElements="showGameElements"
         :showKeyboardShortcuts="showKeyboardShortcuts && !isTouchDevice"
@@ -548,11 +512,10 @@ onUnmounted(() => {
       />
 
       <SolutionsDisplay
-        :solutions="solutions"
+        :solutions="solutionFinder.foundSolutions.value"
         :targetNumber="targetNumber"
         :showSolutions="showSolutions"
-        :playerHasWon="gameResult === GameResult.EXACT_WIN || gameResult === GameResult.BEST_WIN"
-        :isCalculating="isCalculatingSolutions"
+        :isCalculating="solutionFinder.isSearching.value"
       />
 
     </div>
@@ -560,7 +523,7 @@ onUnmounted(() => {
 
     <!-- Sélecteur de mode de jeu -->
     <GameModeSelector
-        v-if="showModeSelector && !gameStarted"
+        v-if="showModeSelector && gameState !== GameResult.IN_PROGRESS"
         :initialMode="gameMode"
         @mode-selected="selectGameMode"
     />
@@ -568,7 +531,7 @@ onUnmounted(() => {
     <button 
       class="start-button" 
       @click="startNewGame"
-      v-if="!showModeSelector && !showManualSetup && !gameStarted && !showSolutions"
+      v-if="!showModeSelector && !showManualSetup && gameState !== GameResult.IN_PROGRESS && !showSolutions"
     >
       Nouvelle partie
     </button>
