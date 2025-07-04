@@ -6,5 +6,6 @@ export default defineConfig({
   plugins: [vue()],
   server: {
     allowedHosts: true
-  }
+  },
+  base: '/kitsune-legacy/'
 })
