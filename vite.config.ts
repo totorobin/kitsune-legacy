@@ -7,5 +7,7 @@ export default defineConfig({
   server: {
     allowedHosts: true
   },
-  base: '/kitsune-legacy/'
+  build: {
+     base: '/kitsune-legacy/'
+  }
 })
