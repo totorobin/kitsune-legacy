@@ -15,8 +15,18 @@ const props = withDefaults(defineProps<{
 
 // Regrouper les solutions par nombre d'opérations
 const groupedSolutions = computed(() => {
-  return Object.values<Solution[]>(Object.groupBy(props.solutions, (s : Solution) => s.nbTiles) as Record<number,Solution[]>) as Solution[][];
+  const grouped = props.solutions.reduce((acc, solution) => {
+    const key = solution.nbTiles;
+    if (!acc[key]) {
+      acc[key] = [];
+    }
+    acc[key].push(solution);
+    return acc;
+  }, {} as Record<number, Solution[]>);
+
+  return Object.values(grouped);
 });
+
 </script>
 
 <template>

@@ -11,7 +11,6 @@ import OperatorsPanel from './OperatorsPanel.vue';
 import ExpressionDisplay from './ExpressionDisplay.vue';
 import VictoryOverlay from './VictoryOverlay.vue';
 import SolutionsDisplay from './SolutionsDisplay.vue';
-import CalculatingOverlay from './CalculatingOverlay.vue';
 import GameModeSelector from './GameModeSelector.vue';
 import ManualGameSetup from './ManualGameSetup.vue';
 import {useSolutionFinder} from "../utils/solutionFinder.ts";
@@ -63,9 +62,6 @@ const startTimer = () => {
     }
   }, 1000);
 };
-
-// État pour le chargement des solutions
-const isCalculatingSolutions = ref(false);
 
 
 // Calculer toutes les solutions possibles (appelé à la fin du jeu)
@@ -137,7 +133,6 @@ const startManualGame = (config: { targetNumber: number, tiles: Tile[], gameTime
   nextId.value = 6; // Réinitialiser l'ID pour les nouvelles tuiles
   gameState.value = GameResult.IN_PROGRESS;
   showNewGameButton.value = false;
-  showSolutions.value = false;
   bestPlayerResult.value = null;
   showManualSetup.value = false;
 
