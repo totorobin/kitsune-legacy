@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // Interface Solution pour la compatibilité
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import type { Solution } from '../utils/solutionFinder3';
 
 const props = withDefaults(defineProps<{
@@ -27,6 +27,29 @@ const groupedSolutions = computed(() => {
   return Object.values(grouped);
 });
 
+// Tracker pour les groupes étendus/réduits
+const expandedGroups = ref<boolean[]>([]);
+
+// Initialiser l'état des groupes (premier groupe étendu, autres réduits si plus de 5 items)
+const initializeExpandedGroups = () => {
+  expandedGroups.value = groupedSolutions.value.map((solutions, index) => {
+    // Premier groupe toujours étendu, autres réduits si plus de 5 items
+    return index === 0 || solutions.length <= 5;
+  });
+};
+
+// Initialiser quand les solutions changent
+const toggleGroup = (groupIndex: number) => {
+  expandedGroups.value[groupIndex] = !expandedGroups.value[groupIndex];
+};
+
+// Surveiller les changements de solutions pour réinitialiser l'état des groupes
+watch(() => props.solutions, (newSolutions) => {
+  if (newSolutions.length > 0) {
+    initializeExpandedGroups();
+  }
+}, { immediate: true });
+
 </script>
 
 <template>
@@ -52,11 +75,13 @@ const groupedSolutions = computed(() => {
 
       <div class="solutions-list">
         <div v-for="(solutions, groupIndex) in groupedSolutions" :key="'group-'+groupIndex" class="solutions-group">
-          <div class="group-header">
+          <div class="group-header" @click="toggleGroup(groupIndex)">
             <h3>Solutions avec {{ solutions[0].nbTiles }} tuiles</h3>
             <div class="result-badge" v-if="solutions[0].distance === 0">Exact: {{ targetNumber }}</div>
             <div class="result-badge" v-else>Résultat: {{ solutions[0].result }}</div>
+            <div class="toggle-indicator">{{ expandedGroups[groupIndex] ? '▼' : '►' }}</div>
           </div>
+          <div v-if="expandedGroups[groupIndex]" class="solution-items-container">
             <div
                 v-for="(solution, index) in solutions"
                 :key="'solution-'+groupIndex+'-'+index"
@@ -64,6 +89,7 @@ const groupedSolutions = computed(() => {
             >
               {{ solution.operation }}
             </div>
+          </div>
         </div>
       </div>
     </div>
@@ -119,6 +145,13 @@ h2 {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  cursor: pointer;
+  position: relative;
+  transition: background-color 0.2s;
+}
+
+.group-header:hover {
+  background-color: #FFA55E;
 }
 
 .group-header h3 {
@@ -127,6 +160,19 @@ h2 {
   color: #7D3500;
   display: flex;
   align-items: center;
+}
+
+.toggle-indicator {
+  margin-left: 10px;
+  color: #7D3500;
+  font-size: 12px;
+  width: 20px;
+  text-align: center;
+}
+
+.solution-items-container {
+  max-height: 300px;
+  overflow-y: auto;
 }
 
 .result-badge {
