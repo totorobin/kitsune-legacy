@@ -57,16 +57,13 @@ const groupedSolutions = computed(() => {
             <div class="result-badge" v-if="solutions[0].distance === 0">Exact: {{ targetNumber }}</div>
             <div class="result-badge" v-else>Résultat: {{ solutions[0].result }}</div>
           </div>
-
-          <div 
-            v-for="(solution, index) in solutions"
-            :key="'solution-'+groupIndex+'-'+index"
-            class="solution-item"
-          >
-            <div class="concise-expression">
+            <div
+                v-for="(solution, index) in solutions"
+                :key="'solution-'+groupIndex+'-'+index"
+                class="solution-item"
+            >
               {{ solution.operation }}
             </div>
-          </div>
         </div>
       </div>
     </div>
@@ -91,20 +88,6 @@ h2 {
 
 .no-solutions {
   color: #333333;
-  font-style: italic;
-}
-
-.loading-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 20px 0;
-}
-
-.loading-info {
-  margin-top: 10px;
-  font-size: 14px;
-  color: #666;
   font-style: italic;
 }
 
@@ -157,77 +140,12 @@ h2 {
 
 .solution-item {
   border: 1px solid #E0E0E0;
-  border-radius: 6px;
-  overflow: hidden;
-  margin: 12px 15px;
   background-color: white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-.concise-expression {
-  padding: 12px 15px;
-  background-color: white;
-  font-size: 18px;
-  font-weight: bold;
-  color: #333333;
-  text-align: left;
-  border-bottom: 1px solid #E0E0E0;
-  position: relative;
-}
-
-
-.toggle-details {
-  text-align: right;
-  padding: 0;
-  background-color: transparent;
-  position: relative;
-  top: -32px;
-  right: 10px;
-  margin-bottom: -20px;
-  height: 20px;
-}
-
-.toggle-details button {
-  background: none;
-  border: none;
-  color: #FF6B00;
-  padding: 2px 8px;
-  font-size: 12px;
-  cursor: pointer;
-  text-decoration: none;
-  opacity: 0.7;
-  border-radius: 4px;
-}
-
-.toggle-details button:hover {
-  color: #E65C00;
-  opacity: 1;
-  background-color: rgba(255, 107, 0, 0.1);
-}
-
-/* Par défaut, cacher les opérations détaillées */
-.operations {
-  display: none;
-  padding: 10px;
-  background-color: white;
-  border-radius: 0 0 6px 6px;
-}
-
-/* Afficher les opérations détaillées quand la classe show-details est présente */
-.solution-item.show-details .operations {
-  display: block;
-}
-
-.operation {
-  padding: 8px 0;
-  border-bottom: 1px solid #F5F5F5;
   font-size: 16px;
-  color: #333333;
-  line-height: 1.4;
+  padding: 5px;
 }
 
-.operation:last-child {
-  border-bottom: none;
-  font-weight: bold;
+.solution-item:nth-child(odd) {
+  background-color: #E0E0E0;
 }
 </style>
