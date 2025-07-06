@@ -77,8 +77,6 @@ watch(() => props.solutions, (newSolutions) => {
         <div v-for="(solutions, groupIndex) in groupedSolutions" :key="'group-'+groupIndex" class="solutions-group">
           <div class="group-header" @click="toggleGroup(groupIndex)">
             <h3>Solutions avec {{ solutions[0].nbTiles }} tuiles</h3>
-            <div class="result-badge" v-if="solutions[0].distance === 0">Exact: {{ targetNumber }}</div>
-            <div class="result-badge" v-else>Résultat: {{ solutions[0].result }}</div>
             <div class="toggle-indicator">{{ expandedGroups[groupIndex] ? '▼' : '►' }}</div>
           </div>
           <div v-if="expandedGroups[groupIndex]" class="solution-items-container">
@@ -168,20 +166,6 @@ h2 {
   font-size: 12px;
   width: 20px;
   text-align: center;
-}
-
-.solution-items-container {
-  max-height: 300px;
-  overflow-y: auto;
-}
-
-.result-badge {
-  background-color: rgba(255, 255, 255, 0.3);
-  padding: 4px 10px;
-  border-radius: 15px;
-  font-size: 14px;
-  font-weight: bold;
-  color: #7D3500;
 }
 
 .solution-item {
