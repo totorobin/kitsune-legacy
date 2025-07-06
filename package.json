@@ -11,7 +11,8 @@
     "test:run": "vitest run",
     "test:cucumber": "cucumber-js",
     "cypress:open": "cypress open",
-    "cypress:run": "cypress run"
+    "cypress:run": "cypress run",
+    "generate-pwa-assets": "pwa-assets-generator --preset minimal-2023 public/kitsune-logo.png"
   },
   "dependencies": {
     "vue": "^3.5.17"
