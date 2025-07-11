@@ -32,7 +32,7 @@ const timer = ref<number | null>(null);
 const gameState = ref<GameResultType>(GameResult.NOT_STARTED);
 const showNewGameButton = ref(false);
 const showSolutions = computed(() => gameState.value != GameResult.NOT_STARTED && gameState.value != GameResult.IN_PROGRESS  && !solutionFinder.isSearching.value);
-
+const showGameElements = computed(() => gameState.value !== GameResult.NOT_STARTED )
 // État pour le mode de jeu
 const gameMode = ref<GameMode>('auto');
 const showModeSelector = ref(true);
@@ -464,10 +464,7 @@ onUnmounted(() => {
 
     <VictoryOverlay
       :gameResult="gameState"
-      :showNewGameButton="showNewGameButton"
-      :solutions="solutionFinder.foundSolutions.value"
       :targetNumber="targetNumber"
-      @new-game="startNewGame"
       @close-overlay="gameState = GameResult.TIME_UP"
       :isCalculating="solutionFinder.isSearching.value"
     />
@@ -489,7 +486,7 @@ onUnmounted(() => {
       <TilesGrid 
         :tiles="tiles"
         :gameStarted="gameState === GameResult.IN_PROGRESS"
-        :showGameElements="gameState !== GameResult.NOT_STARTED"
+        :showGameElements="showGameElements"
         :showKeyboardShortcuts="showKeyboardShortcuts && !isTouchDevice"
         @tile-click="handleTileClick"
       />
@@ -497,7 +494,7 @@ onUnmounted(() => {
       <OperatorsPanel
         :gameStarted="gameState === GameResult.IN_PROGRESS"
         :hasFirstOperand="!!firstOperand"
-        :showGameElements="gameState  !== GameResult.NOT_STARTED"
+        :showGameElements="showGameElements"
         :showKeyboardShortcuts="showKeyboardShortcuts && !isTouchDevice"
         @operator-click="handleOperatorInput"
       />
@@ -505,7 +502,7 @@ onUnmounted(() => {
       <ExpressionDisplay
         :expression="expression"
         :operationsHistory="operationsHistory"
-        :showGameElements="gameState !== GameResult.NOT_STARTED"
+        :showGameElements="showGameElements"
       />
 
       <SolutionsDisplay
@@ -588,7 +585,7 @@ onUnmounted(() => {
 }
 
 .toggle-btn:hover {
-  background-color: var(--kitsune-orange-light);
+  background-color: var(--kitsune-light-orange);
 }
 
 /* Styles responsifs pour mobile */

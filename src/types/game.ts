@@ -13,12 +13,12 @@ export type GameMode = 'auto' | 'manual';
 
 // État des résultats du jeu
 export const GameResult = {
+  NOT_STARTED: -1,  // Jeu non démarré
   IN_PROGRESS: 0,  // Jeu en cours
   TIME_UP: 1,      // temps écoulé
   EXACT_WIN: 2,    // Victoire avec résultat exact
   BEST_WIN: 3,     // Victoire avec meilleur résultat possible
   LOSS: 4,         // Défaite
-  NOT_STARTED: 5   // Jeu non démarré
 } as const;
 
 export type GameResultType = typeof GameResult[keyof typeof GameResult];
