@@ -311,14 +311,11 @@ const handleTileClick = (tile: Tile) => {
       expression.value = '';
       firstOperand.value = null;
       operator.value = null;
+
+      handleTileClick(newTile)
     }
   }
 };
-
-// Propriété calculée pour déterminer si les éléments du jeu doivent être affichés
-const showGameElements = computed(() => {
-  return gameState.value !== GameResult.NOT_STARTED;
-});
 
 // Gestionnaire d'événements pour les touches du clavier
 const handleKeydown = (event: KeyboardEvent) => {
@@ -492,7 +489,7 @@ onUnmounted(() => {
       <TilesGrid 
         :tiles="tiles"
         :gameStarted="gameState === GameResult.IN_PROGRESS"
-        :showGameElements="showGameElements"
+        :showGameElements="gameState !== GameResult.NOT_STARTED"
         :showKeyboardShortcuts="showKeyboardShortcuts && !isTouchDevice"
         @tile-click="handleTileClick"
       />
@@ -500,7 +497,7 @@ onUnmounted(() => {
       <OperatorsPanel
         :gameStarted="gameState === GameResult.IN_PROGRESS"
         :hasFirstOperand="!!firstOperand"
-        :showGameElements="showGameElements"
+        :showGameElements="gameState  !== GameResult.NOT_STARTED"
         :showKeyboardShortcuts="showKeyboardShortcuts && !isTouchDevice"
         @operator-click="handleOperatorInput"
       />
@@ -508,7 +505,7 @@ onUnmounted(() => {
       <ExpressionDisplay
         :expression="expression"
         :operationsHistory="operationsHistory"
-        :showGameElements="showGameElements"
+        :showGameElements="gameState !== GameResult.NOT_STARTED"
       />
 
       <SolutionsDisplay
