@@ -116,8 +116,8 @@ const getKeyHint = (tile: Tile) => {
   }
 
   .tiles button {
-    padding: 16px 10px;
-    font-size: 18px;
+    padding: 14px 10px;
+    font-size: 26px;
     min-height: 60px;
   }
 }
