@@ -1,6 +1,6 @@
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue';
+import {ref, onMounted, onUnmounted, computed } from 'vue';
 import { type Tile, GameStates } from '../types/game';
 
 // Composants
@@ -35,8 +35,8 @@ const {
 } = useGameStore()
 
 // État du jeu
-const showSolutions = computed(() => state != GameStates.NOT_STARTED && state != GameStates.IN_PROGRESS  && !isSearching);
-const showGameElements = computed(() => state !== GameStates.NOT_STARTED )
+const showSolutions = computed(() => state.value != GameStates.NOT_STARTED && state.value != GameStates.IN_PROGRESS  && !isSearching.value);
+const showGameElements = computed(() => state.value !== GameStates.NOT_STARTED )
 // État pour le mode de jeu
 const gameMode = ref<GameMode>('auto');
 const showModeSelector = ref(true);
@@ -65,7 +65,7 @@ const selectGameMode = (mode: GameMode) => {
 
 // Gestion des entrées pour les opérateurs
 const handleOperatorInput = (value: string) => {
-  if (state !== GameStates.IN_PROGRESS) return;
+  if (state.value !== GameStates.IN_PROGRESS) return;
 
   if (value === 'C') {
     // Réinitialiser l'expression et l'état de l'opération
@@ -87,14 +87,14 @@ const handleOperatorInput = (value: string) => {
 
 // Gestion des clics sur les tuiles numériques
 const handleTileClick = (tile: Tile) => {
-  if (state !== GameStates.IN_PROGRESS || tile.isSelected) return;
+  if (state.value !== GameStates.IN_PROGRESS || tile.isSelected) return;
 
   selectTile(tile);
 };
 
 // Gestionnaire d'événements pour les touches du clavier
 const handleKeydown = (event: KeyboardEvent) => {
-  if (state !== GameStates.IN_PROGRESS) return;
+  if (state.value !== GameStates.IN_PROGRESS) return;
 
   // Gestion des touches numériques (1-9, 0)
   if (/^[0-9]$/.test(event.key)) {
@@ -102,7 +102,7 @@ const handleKeydown = (event: KeyboardEvent) => {
     // Cas spécial pour la touche 0 qui doit sélectionner une tuile 10
     const tileValue = numericValue === 0 ? 10 : numericValue;
     // Chercher une tuile non sélectionnée avec cette valeur
-    const matchingTile = tiles.find(tile =>
+    const matchingTile = tiles.value.find(tile =>
       tile.value === tileValue && !tile.isSelected
     );
 
@@ -113,19 +113,19 @@ const handleKeydown = (event: KeyboardEvent) => {
 
   // Gestion des touches spéciales pour 25, 50, 75, 100
   if (event.key === 'a' || event.key === 'A') { // Pour 25
-    const tile25 = tiles.find(tile => tile.value === 25 && !tile.isSelected);
+    const tile25 = tiles.value.find(tile => tile.value === 25 && !tile.isSelected);
     if (tile25) handleTileClick(tile25);
   }
   if (event.key === 'z' || event.key === 'Z') { // Pour 50
-    const tile50 = tiles.find(tile => tile.value === 50 && !tile.isSelected);
+    const tile50 = tiles.value.find(tile => tile.value === 50 && !tile.isSelected);
     if (tile50) handleTileClick(tile50);
   }
   if (event.key === 'e' || event.key === 'E') { // Pour 75
-    const tile75 = tiles.find(tile => tile.value === 75 && !tile.isSelected);
+    const tile75 = tiles.value.find(tile => tile.value === 75 && !tile.isSelected);
     if (tile75) handleTileClick(tile75);
   }
   if (event.key === 'r' || event.key === 'R') { // Pour 100
-    const tile100 = tiles.find(tile => tile.value === 100 && !tile.isSelected);
+    const tile100 = tiles.value.find(tile => tile.value === 100 && !tile.isSelected);
     if (tile100) handleTileClick(tile100);
   }
 
@@ -139,7 +139,7 @@ const handleKeydown = (event: KeyboardEvent) => {
     const keyIndex = resultKeyMap.indexOf(lowerKey);
 
     // Obtenir toutes les tuiles résultats (ID >= 6) qui ne sont pas sélectionnées
-    const resultTiles = tiles.filter(tile => tile.id >= 6 && !tile.isSelected);
+    const resultTiles = tiles.value.filter(tile => tile.id >= 6 && !tile.isSelected);
 
     // Si nous avons suffisamment de tuiles résultats
     if (keyIndex < resultTiles.length) {
@@ -169,7 +169,7 @@ const handleKeydown = (event: KeyboardEvent) => {
 
   // Espace pour sélectionner la première tuile disponible
   if (event.key === ' ' || event.key === 'Space') {
-    const firstAvailableTile = tiles.find(tile => !tile.isSelected);
+    const firstAvailableTile = tiles.value.find((tile: Tile) => !tile.isSelected);
     if (firstAvailableTile) {
       handleTileClick(firstAvailableTile);
     }
@@ -202,6 +202,7 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeydown);
 });
+
 </script>
 
 <template>

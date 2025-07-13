@@ -1,5 +1,5 @@
 import {DEFAULT_GAME_TIME, GameStates, type GameStatesType, type Operator, type Tile} from "../types/game";
-import {reactive} from "vue";
+import {computed, reactive} from "vue";
 import {generateRandomTiles, generateTargetNumber, performOperation} from "../utils/gameLogic";
 import {useSolutionFinder} from "../utils/solutionFinder";
 
@@ -30,17 +30,18 @@ const initialState: GameState = {
 }
 
 const state = reactive({...initialState})
+const solutionFinder = useSolutionFinder()
 
 export const useGameStore = () => {
 
     // Worker for solution finding
-    const solutionFinder = useSolutionFinder()
     clearInterval(state.timer);
 
     const newGame = (config: { targetNumber?: number, tiles?: Tile[], time?: number }, resolve = false) => {
         Object.assign(state, initialState)
         state.targetNumber = config.targetNumber || generateTargetNumber();
         state.tiles = config.tiles || generateRandomTiles();
+        console.log('new game', state.tiles, state.targetNumber)
         if (config.time) {
             state.timeLeft = config.time
             state.totalTime = config.time
@@ -48,7 +49,7 @@ export const useGameStore = () => {
         state.state = GameStates.IN_PROGRESS;
         if (!resolve)
             startTimer();
-        solutionFinder.search(state.tiles.map(t => t.value), state.targetNumber, () => {
+        solutionFinder.search([ ...state.tiles.map((t: Tile) => t.value)], state.targetNumber, () => {
             if (state.state === GameStates.TIME_UP && !resolve)
                 calculateWin()
         })
@@ -176,14 +177,14 @@ export const useGameStore = () => {
         selectOperator,
         resetGame,
         undo,
-        state: state.state,
-        tiles: state.tiles,
-        targetNumber: state.targetNumber,
-        timeLeft: state.timeLeft,
-        totalTime: state.totalTime,
-        operator: state.operator,
-        operationsHistory: state.operationsHistory,
-        bestPlayerResult: state.bestPlayerResult,
+        state: computed(() => state.state),
+        tiles: computed(() => state.tiles),
+        targetNumber: computed(() => state.targetNumber),
+        timeLeft: computed(() => state.timeLeft),
+        totalTime: computed(() => state.totalTime),
+        operator: computed(() => state.operator),
+        operationsHistory: computed(() => state.operationsHistory),
+        bestPlayerResult: computed(() => state.bestPlayerResult),
         isSearching: solutionFinder.isSearching,
         foundSolutions: solutionFinder.foundSolutions
     }
