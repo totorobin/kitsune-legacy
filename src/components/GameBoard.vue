@@ -1,8 +1,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue';
-import { type Tile, type Operator, MAX_TIME, GameResult , type GameResultType } from '../types/game';
-import { generateRandomTiles, generateTargetNumber, performOperation } from '../utils/gameLogic';
+import { type Tile, GameStates } from '../types/game';
 
 // Composants
 import GameHeader from './GameHeader.vue';
@@ -13,26 +12,31 @@ import VictoryOverlay from './VictoryOverlay.vue';
 import SolutionsDisplay from './SolutionsDisplay.vue';
 import GameModeSelector from './GameModeSelector.vue';
 import ManualGameSetup from './ManualGameSetup.vue';
-import {useSolutionFinder} from "../utils/solutionFinder.ts";
+import {useGameStore} from "../stores/gameStore";
 
 // Types pour les modes de jeu
 type GameMode = 'auto' | 'manual';
 
-// Worker for solution finding
-const solutionFinder = useSolutionFinder()
+const {
+  newGame,
+  selectTile,
+  selectOperator,
+  resetGame,
+  undo,
+  state,
+    tiles,
+    targetNumber,
+    timeLeft,
+    totalTime,
+    operator,
+  operationsHistory,
+  isSearching,
+  foundSolutions
+} = useGameStore()
 
 // État du jeu
-const tiles = ref<Tile[]>([]);
-const targetNumber = ref(0);
-const timeLeft = ref(MAX_TIME);
-const gameTime = ref(MAX_TIME)
-const expression = ref('');
-const operationsHistory = ref<string[]>([]);
-const timer = ref<number | null>(null);
-const gameState = ref<GameResultType>(GameResult.NOT_STARTED);
-const showNewGameButton = ref(false);
-const showSolutions = computed(() => gameState.value != GameResult.NOT_STARTED && gameState.value != GameResult.IN_PROGRESS  && !solutionFinder.isSearching.value);
-const showGameElements = computed(() => gameState.value !== GameResult.NOT_STARTED )
+const showSolutions = computed(() => state != GameStates.NOT_STARTED && state != GameStates.IN_PROGRESS  && !isSearching);
+const showGameElements = computed(() => state !== GameStates.NOT_STARTED )
 // État pour le mode de jeu
 const gameMode = ref<GameMode>('auto');
 const showModeSelector = ref(true);
@@ -42,38 +46,7 @@ const showManualSetup = ref(false);
 const showKeyboardShortcuts = ref(true); // Par défaut, afficher les raccourcis
 const isTouchDevice = ref(false); // Détection des appareils tactiles
 
-// État de l'opération en cours
-const firstOperand = ref<Tile | null>(null);
-const operator = ref<Operator | null>(null);
-const nextId = ref(6); // Pour générer des IDs uniques pour les nouvelles tuiles
 
-// Le meilleur résultat obtenu par le joueur
-const bestPlayerResult = ref<number | null>(null);
-
-// Gestion du timer
-const startTimer = () => {
-  if (timer.value) clearInterval(timer.value);
-  timer.value = setInterval(() => {
-    if (timeLeft.value > 0) {
-      timeLeft.value--;
-    } else {
-      if (timer.value) clearInterval(timer.value);
-      stopGame();
-    }
-  }, 1000);
-};
-
-
-// Calculer toutes les solutions possibles (appelé à la fin du jeu)
-const stopGame = () => {
-  // Activer l'indicateur de chargement et afficher le conteneur de solutions
-  gameState.value = GameResult.TIME_UP;
-
-
-  // Si les solutions ont déjà été calculées par le worker, on les utilise directement
-  if (!solutionFinder.isSearching)
-    calculateWin()
-}
 
 // Sélectionner un mode de jeu
 const selectGameMode = (mode: GameMode) => {
@@ -82,244 +55,46 @@ const selectGameMode = (mode: GameMode) => {
 
   if (mode === 'auto') {
     // Mode automatique: démarrer directement une nouvelle partie
-    startNewGame();
+    newGame({});
   } else {
     // Mode manuel: afficher l'interface de configuration
     showManualSetup.value = true;
   }
 };
 
-const searchEnded = () => {
-  if(gameState.value === GameResult.TIME_UP)
-     calculateWin()
-}
-
-const calculateWin = () => {
-  // Vérifier si le joueur a trouvé le meilleur résultat possible
-  if (bestPlayerResult.value !== null) {
-    const bestPossibleDistance = solutionFinder.foundSolutions.value[0].distance;
-    const playerDistance = Math.abs(bestPlayerResult.value - targetNumber.value);
-
-    if (playerDistance === 0) {
-      // Le joueur a trouvé le résultat exact
-      gameState.value = GameResult.EXACT_WIN;
-    } else if (playerDistance === bestPossibleDistance) {
-      // Le joueur a trouvé le meilleur résultat possible (pas exact)
-      gameState.value = GameResult.BEST_WIN;
-    } else {
-      // Le joueur n'a pas trouvé le meilleur résultat
-      gameState.value = GameResult.LOSS;
-    }
-  } else {
-    // Le joueur n'a pas obtenu de résultat
-    gameState.value = GameResult.LOSS;
-  }
-  // Afficher le bouton nouvelle partie
-  setTimeout(() => {
-    showNewGameButton.value = true;
-  }, 3000);
-}
-
-// Démarrer une nouvelle partie avec configuration manuelle
-const startManualGame = (config: { targetNumber: number, tiles: Tile[], gameTime: number }) => {
-  tiles.value = config.tiles;
-  targetNumber.value = config.targetNumber;
-  timeLeft.value = config.gameTime; // Utiliser le temps de jeu personnalisé
-  gameTime.value = config.gameTime;
-  expression.value = '';
-  operationsHistory.value = [];
-  firstOperand.value = null;
-  operator.value = null;
-  nextId.value = 6; // Réinitialiser l'ID pour les nouvelles tuiles
-  gameState.value = GameResult.IN_PROGRESS;
-  showNewGameButton.value = false;
-  bestPlayerResult.value = null;
-  showManualSetup.value = false;
-
-  solutionFinder.search(tiles.value.map(tile => tile.value), targetNumber.value, searchEnded)
-
-  // Démarrer le timer
-  startTimer();
-
-};
-
-// Démarrer une nouvelle partie
-const startNewGame = () => {
-  // Réinitialiser l'interface
-  showModeSelector.value = true;
-  showManualSetup.value = false;
-
-  if (gameMode.value === 'auto') {
-    // Mode automatique: générer des tuiles et un nombre cible aléatoires
-    startManualGame({ targetNumber: generateTargetNumber(), tiles: generateRandomTiles(), gameTime: MAX_TIME });
-  }
-  // Pour le mode manuel, on attend que l'utilisateur configure et démarre le jeu
-};
 
 // Gestion des entrées pour les opérateurs
 const handleOperatorInput = (value: string) => {
-  if (gameState.value !== GameResult.IN_PROGRESS) return;
+  if (state !== GameStates.IN_PROGRESS) return;
 
   if (value === 'C') {
     // Réinitialiser l'expression et l'état de l'opération
-    expression.value = '';
-    operationsHistory.value = [];
-    firstOperand.value = null;
-    operator.value = null;
-
-    // Supprimer les tuiles résultats (celles avec ID >= 6) et réactiver les autres
-    tiles.value = tiles.value.filter(tile => tile.id < 6);
-    tiles.value.forEach(tile => tile.isSelected = false);
-    bestPlayerResult.value = null;
+    resetGame();
     return;
   }
 
   if (value === 'U') {
     // Annuler la dernière opération
-    if (operationsHistory.value.length > 0) {
-      // Supprimer la dernière entrée d'historique
-      operationsHistory.value.pop();
-
-      // Récupérer toutes les tuiles initiales (ID < 6)
-      const initialTiles = tiles.value.filter(tile => tile.id < 6);
-
-      // Réinitialiser l'état de sélection des tuiles initiales
-      initialTiles.forEach(tile => tile.isSelected = false);
-
-      // Si on n'a plus aucune opération, on garde juste les tuiles initiales
-      if (operationsHistory.value.length === 0) {
-        tiles.value = initialTiles;
-        bestPlayerResult.value = null;
-      } else {
-        // Sinon, on recalcule toutes les opérations à partir des tuiles initiales
-        // en répétant chaque opération sauf la dernière
-        tiles.value = [...initialTiles]; // Commencer avec les tuiles initiales
-        let currentNextId = 6;
-
-        // Parcourir l'historique et recréer les tuiles résultantes
-        for (const opText of operationsHistory.value) {
-          // Extraire les valeurs de l'opération (format: "a op b = result")
-          const match = opText.match(/(\d+\.?\d*)\s*([+\-×÷])\s*(\d+\.?\d*)\s*=\s*(\d+\.?\d*)/);
-          if (match) {
-            const [, leftVal, _, rightVal, resultVal] = match;
-
-            // Marquer les tuiles utilisées comme sélectionnées
-            const leftTile = tiles.value.find(t => t.value === parseFloat(leftVal) && !t.isSelected);
-            const rightTile = tiles.value.find(t => t.value === parseFloat(rightVal) && !t.isSelected);
-
-            if (leftTile && rightTile) {
-              leftTile.isSelected = true;
-              rightTile.isSelected = true;
-
-              // Créer une nouvelle tuile avec le résultat
-              const newTile: Tile = {
-                id: currentNextId++,
-                value: parseFloat(resultVal),
-                isSelected: false
-              };
-
-              // Ajouter la nouvelle tuile
-              tiles.value.push(newTile);
-
-              // Mettre à jour le meilleur résultat obtenu
-              const distance = Math.abs(newTile.value - targetNumber.value);
-              if (bestPlayerResult.value === null || distance < Math.abs(bestPlayerResult.value - targetNumber.value)) {
-                bestPlayerResult.value = newTile.value;
-              }
-            }
-          }
-        }
-
-        // Mettre à jour l'ID pour les nouvelles tuiles
-        nextId.value = currentNextId;
-      }
-
-      // Réinitialiser l'expression courante
-      expression.value = '';
-      firstOperand.value = null;
-      operator.value = null;
-    }
+    undo();
     return;
   }
 
-  if (['+', '-', '×', '÷'].includes(value) && firstOperand.value) {
+  if (['+', '-', '×', '÷'].includes(value)) {
     // Mettre à jour l'opérateur
-    operator.value = value as Operator;
-
-    // Reconstruire complètement l'expression pour garantir la cohérence
-    // expression = premierOpérande + nouvelOpérateur
-    expression.value = `${firstOperand.value.value} ${value}`;
+    selectOperator(value)
   }
 };
 
 // Gestion des clics sur les tuiles numériques
 const handleTileClick = (tile: Tile) => {
-  if (gameState.value !== GameResult.IN_PROGRESS || tile.isSelected) return;
+  if (state !== GameStates.IN_PROGRESS || tile.isSelected) return;
 
-  if (!firstOperand.value) {
-    // Premier opérande
-    firstOperand.value = tile;
-    tile.isSelected = true;
-    expression.value = tile.value.toString(); // Affiche juste le premier nombre
-  } else if (!operator.value) {
-    // Si on clique sur une autre tuile sans avoir sélectionné d'opérateur,
-    // on remplace la première tuile sélectionnée
-    firstOperand.value.isSelected = false; // Désélectionne la première tuile
-    firstOperand.value = tile;
-    tile.isSelected = true;
-    expression.value = tile.value.toString();
-  } else if (operator.value && !tile.isSelected) {
-    // Deuxième opérande - effectuer l'opération
-    const result = performOperation(firstOperand.value.value, operator.value, tile.value);
-
-    if (!isNaN(result)) {
-      // Marquer les tuiles utilisées comme sélectionnées
-      tile.isSelected = true;
-
-      // Créer une nouvelle tuile avec le résultat
-      const newTile: Tile = {
-        id: nextId.value++,
-        value: Math.round(result * 100) / 100, // Arrondir à 2 décimales
-        isSelected: false
-      };
-
-      // Ajouter la nouvelle tuile sans supprimer les anciennes
-      tiles.value.push(newTile);
-
-      // Créer une entrée d'historique pour cette opération
-      const operationText = `${firstOperand.value.value} ${operator.value} ${tile.value} = ${newTile.value}`;
-      operationsHistory.value.push(operationText);
-
-      // Mettre à jour le meilleur résultat obtenu par le joueur
-      const distance = Math.abs(newTile.value - targetNumber.value);
-      if (bestPlayerResult.value === null || distance < Math.abs(bestPlayerResult.value - targetNumber.value)) {
-        bestPlayerResult.value = newTile.value;
-      }
-
-      // Vérifier si le joueur a gagné
-      if (newTile.value === targetNumber.value) {
-        gameState.value = GameResult.EXACT_WIN;
-        if (timer.value) clearInterval(timer.value);
-
-        // Afficher le bouton de nouvelle partie après 3 secondes (après la plupart des confettis)
-        setTimeout(() => {
-          showNewGameButton.value = true;
-        }, 3000);
-      }
-
-      // Réinitialiser pour la prochaine opération
-      expression.value = '';
-      firstOperand.value = null;
-      operator.value = null;
-
-      handleTileClick(newTile)
-    }
-  }
+  selectTile(tile);
 };
 
 // Gestionnaire d'événements pour les touches du clavier
 const handleKeydown = (event: KeyboardEvent) => {
-  if (gameState.value !== GameResult.IN_PROGRESS) return;
+  if (state !== GameStates.IN_PROGRESS) return;
 
   // Gestion des touches numériques (1-9, 0)
   if (/^[0-9]$/.test(event.key)) {
@@ -327,7 +102,7 @@ const handleKeydown = (event: KeyboardEvent) => {
     // Cas spécial pour la touche 0 qui doit sélectionner une tuile 10
     const tileValue = numericValue === 0 ? 10 : numericValue;
     // Chercher une tuile non sélectionnée avec cette valeur
-    const matchingTile = tiles.value.find(tile => 
+    const matchingTile = tiles.find(tile =>
       tile.value === tileValue && !tile.isSelected
     );
 
@@ -338,19 +113,19 @@ const handleKeydown = (event: KeyboardEvent) => {
 
   // Gestion des touches spéciales pour 25, 50, 75, 100
   if (event.key === 'a' || event.key === 'A') { // Pour 25
-    const tile25 = tiles.value.find(tile => tile.value === 25 && !tile.isSelected);
+    const tile25 = tiles.find(tile => tile.value === 25 && !tile.isSelected);
     if (tile25) handleTileClick(tile25);
   }
   if (event.key === 'z' || event.key === 'Z') { // Pour 50
-    const tile50 = tiles.value.find(tile => tile.value === 50 && !tile.isSelected);
+    const tile50 = tiles.find(tile => tile.value === 50 && !tile.isSelected);
     if (tile50) handleTileClick(tile50);
   }
   if (event.key === 'e' || event.key === 'E') { // Pour 75
-    const tile75 = tiles.value.find(tile => tile.value === 75 && !tile.isSelected);
+    const tile75 = tiles.find(tile => tile.value === 75 && !tile.isSelected);
     if (tile75) handleTileClick(tile75);
   }
   if (event.key === 'r' || event.key === 'R') { // Pour 100
-    const tile100 = tiles.value.find(tile => tile.value === 100 && !tile.isSelected);
+    const tile100 = tiles.find(tile => tile.value === 100 && !tile.isSelected);
     if (tile100) handleTileClick(tile100);
   }
 
@@ -364,7 +139,7 @@ const handleKeydown = (event: KeyboardEvent) => {
     const keyIndex = resultKeyMap.indexOf(lowerKey);
 
     // Obtenir toutes les tuiles résultats (ID >= 6) qui ne sont pas sélectionnées
-    const resultTiles = tiles.value.filter(tile => tile.id >= 6 && !tile.isSelected);
+    const resultTiles = tiles.filter(tile => tile.id >= 6 && !tile.isSelected);
 
     // Si nous avons suffisamment de tuiles résultats
     if (keyIndex < resultTiles.length) {
@@ -394,22 +169,9 @@ const handleKeydown = (event: KeyboardEvent) => {
 
   // Espace pour sélectionner la première tuile disponible
   if (event.key === ' ' || event.key === 'Space') {
-    const firstAvailableTile = tiles.value.find(tile => !tile.isSelected);
+    const firstAvailableTile = tiles.find(tile => !tile.isSelected);
     if (firstAvailableTile) {
       handleTileClick(firstAvailableTile);
-    }
-  }
-
-  // Entrée pour confirmer une opération si un premier opérande et un opérateur sont sélectionnés
-  if (event.key === 'Enter') {
-    if (firstOperand.value && operator.value) {
-      // Chercher la première tuile disponible pour compléter l'opération
-      const secondOperand = tiles.value.find(tile => 
-        !tile.isSelected && tile.id !== firstOperand.value?.id
-      );
-      if (secondOperand) {
-        handleTileClick(secondOperand);
-      }
     }
   }
 
@@ -418,16 +180,6 @@ const handleKeydown = (event: KeyboardEvent) => {
     handleOperatorInput('C');
   }
 
-  // Tab pour basculer entre les opérateurs
-  if (event.key === 'Tab') {
-    event.preventDefault(); // Empêcher le comportement par défaut du navigateur
-
-    const operators = ['+', '-', '×', '÷'];
-    const currentIndex = operators.indexOf(operator.value as string);
-    const nextIndex = (currentIndex + 1) % operators.length;
-
-    handleOperatorInput(operators[nextIndex]);
-  }
 };
 
 // Fonction pour basculer l'affichage des raccourcis clavier
@@ -449,35 +201,33 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeydown);
-  if (timer.value) clearInterval(timer.value);
 });
 </script>
 
 <template>
   <div class="game-board">
     <GameHeader 
-      v-if="gameState !== GameResult.NOT_STARTED"
+      v-if="state !== GameStates.NOT_STARTED"
       :targetNumber="targetNumber"
       :timeLeft="timeLeft"
-      :gameTime="gameTime"
+      :gameTime="totalTime"
     />
 
     <VictoryOverlay
-      :gameResult="gameState"
+      :gameResult="state"
       :targetNumber="targetNumber"
-      @close-overlay="gameState = GameResult.TIME_UP"
-      :isCalculating="solutionFinder.isSearching.value"
+      :isCalculating="isSearching"
     />
 
     <!-- Configuration manuelle du jeu -->
     <ManualGameSetup 
       v-if="showManualSetup" 
-      @start-game="startManualGame" 
+      @start-game="newGame"
     />
 
-    <div class="game-area" v-if="gameState !== GameResult.NOT_STARTED">
+    <div class="game-area" v-if="state !== GameStates.NOT_STARTED">
       <!-- Bouton pour afficher/masquer les raccourcis clavier (visible uniquement sur desktop) -->
-      <div v-if="!isTouchDevice && gameState === GameResult.IN_PROGRESS" class="shortcuts-toggle">
+      <div v-if="!isTouchDevice && state === GameStates.IN_PROGRESS" class="shortcuts-toggle">
         <button @click="toggleKeyboardShortcuts" class="toggle-btn">
           {{ showKeyboardShortcuts ? 'Masquer raccourcis' : 'Afficher raccourcis' }}
         </button>
@@ -485,31 +235,32 @@ onUnmounted(() => {
 
       <TilesGrid 
         :tiles="tiles"
-        :gameStarted="gameState === GameResult.IN_PROGRESS"
+        :gameStarted="state === GameStates.IN_PROGRESS"
         :showGameElements="showGameElements"
         :showKeyboardShortcuts="showKeyboardShortcuts && !isTouchDevice"
         @tile-click="handleTileClick"
       />
 
       <OperatorsPanel
-        :gameStarted="gameState === GameResult.IN_PROGRESS"
-        :hasFirstOperand="!!firstOperand"
+        :gameStarted="state === GameStates.IN_PROGRESS"
+        :hasFirstOperand="tiles.some(t => t.isSelected)"
         :showGameElements="showGameElements"
         :showKeyboardShortcuts="showKeyboardShortcuts && !isTouchDevice"
         @operator-click="handleOperatorInput"
+        :current-operator="operator"
       />
 
       <ExpressionDisplay
-        :expression="expression"
+        :expression="''"
         :operationsHistory="operationsHistory"
         :showGameElements="showGameElements"
       />
 
       <SolutionsDisplay
-        :solutions="solutionFinder.foundSolutions.value"
+        :solutions="foundSolutions"
         :targetNumber="targetNumber"
         :showSolutions="showSolutions"
-        :isCalculating="solutionFinder.isSearching.value"
+        :isCalculating="isSearching"
       />
 
     </div>
@@ -517,18 +268,10 @@ onUnmounted(() => {
 
     <!-- Sélecteur de mode de jeu -->
     <GameModeSelector
-        v-if="showModeSelector && gameState !== GameResult.IN_PROGRESS"
+        v-if="showModeSelector && state !== GameStates.IN_PROGRESS"
         :initialMode="gameMode"
         @mode-selected="selectGameMode"
     />
-
-    <button 
-      class="start-button" 
-      @click="startNewGame"
-      v-if="!showModeSelector && !showManualSetup && gameState !== GameResult.IN_PROGRESS && !showSolutions"
-    >
-      Nouvelle partie
-    </button>
   </div>
 </template>
 
@@ -547,24 +290,6 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 20px;
-}
-
-.start-button {
-  padding: 15px;
-  font-size: 18px;
-  background: var(--kitsune-orange);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background-color 0.2s, transform 0.2s;
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
-}
-
-.start-button:hover {
-  background: var(--kitsune-dark-orange);
-  transform: translateY(-2px);
-  box-shadow: 0 5px 10px rgba(0, 0, 0, 0.3);
 }
 
 .shortcuts-toggle {

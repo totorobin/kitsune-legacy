@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import ConfettiExplosion from './ConfettiExplosion.vue';
-import type { GameResultType } from '../types/game';
-import { GameResult } from '../types/game';
+import type { GameStatesType } from '../types/game';
+import { GameStates } from '../types/game';
 import { ref, watch } from 'vue';
 import LoadingSpinner from "./LoadingSpinner.vue";
 
 const props = defineProps<{
-  gameResult: GameResultType;
+  gameResult: GameStatesType;
   targetNumber?: number;
   isCalculating: boolean;
 }>();
@@ -20,7 +20,7 @@ const visible = ref(true);
 
 // Réinitialiser visible à true quand gameResult change de IN_PROGRESS à autre chose
 watch(() => props.gameResult, (newValue, oldValue) => {
-  if (newValue !== GameResult.IN_PROGRESS && oldValue === GameResult.IN_PROGRESS) {
+  if (newValue !== GameStates.IN_PROGRESS && oldValue === GameStates.IN_PROGRESS) {
     visible.value = true;
   }
 });
@@ -34,24 +34,24 @@ const closeOverlay = () => {
 </script>
 
 <template>
-  <div v-if="gameResult !== GameResult.IN_PROGRESS && gameResult != GameResult.NOT_STARTED && visible" class="victory-overlay" @click="closeOverlay">
+  <div v-if="gameResult !== GameStates.IN_PROGRESS && gameResult != GameStates.NOT_STARTED && visible" class="victory-overlay" @click="closeOverlay">
     <div class="victory-content">
       <div class="victory-text">
-        <template v-if="gameResult === GameResult.EXACT_WIN">GAGNÉ !</template>
-        <template v-else-if="gameResult === GameResult.BEST_WIN">BIEN JOUÉ !</template>
-        <template v-else-if="gameResult === GameResult.LOSS || gameResult === GameResult.TIME_UP">TEMPS ÉCOULÉ</template>
+        <template v-if="gameResult === GameStates.EXACT_WIN">GAGNÉ !</template>
+        <template v-else-if="gameResult === GameStates.BEST_WIN">BIEN JOUÉ !</template>
+        <template v-else-if="gameResult === GameStates.LOSS || gameResult === GameStates.TIME_UP">TEMPS ÉCOULÉ</template>
       </div>
-      <div v-if="gameResult === GameResult.TIME_UP && isCalculating" class="calculating-content">
+      <div v-if="gameResult === GameStates.TIME_UP && isCalculating" class="calculating-content">
           <LoadingSpinner text="Recherche des solutions..." />
           <p class="calculating-info">La recherche peut prendre quelques secondes...</p>
       </div>
       <div class="victory-subtitle">
-        <template v-if="gameResult === GameResult.EXACT_WIN">Vous avez trouvé le nombre exact !</template>
-        <template v-else-if="gameResult === GameResult.BEST_WIN">Vous avez trouvé le meilleur résultat possible !</template>
+        <template v-if="gameResult === GameStates.EXACT_WIN">Vous avez trouvé le nombre exact !</template>
+        <template v-else-if="gameResult === GameStates.BEST_WIN">Vous avez trouvé le meilleur résultat possible !</template>
       </div>
 
     </div>
-    <ConfettiExplosion :active="gameResult !== GameResult.LOSS && gameResult != GameResult.TIME_UP" :count="150" />
+    <ConfettiExplosion :active="gameResult !== GameStates.LOSS && gameResult != GameStates.TIME_UP" :count="150" />
   </div>
 </template>
 

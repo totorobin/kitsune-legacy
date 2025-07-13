@@ -3,7 +3,9 @@
 export interface Tile {
   value: number;
   isSelected: boolean;
+  isUsed: boolean;
   id: number;
+  parentIds?: number[];
 }
 
 export type Operator = '+' | '-' | '×' | '÷';
@@ -12,7 +14,7 @@ export type Operator = '+' | '-' | '×' | '÷';
 export type GameMode = 'auto' | 'manual';
 
 // État des résultats du jeu
-export const GameResult = {
+export const GameStates = {
   NOT_STARTED: -1,  // Jeu non démarré
   IN_PROGRESS: 0,  // Jeu en cours
   TIME_UP: 1,      // temps écoulé
@@ -21,10 +23,10 @@ export const GameResult = {
   LOSS: 4,         // Défaite
 } as const;
 
-export type GameResultType = typeof GameResult[keyof typeof GameResult];
+export type GameStatesType = typeof GameStates[keyof typeof GameStates];
 
 // Constantes du jeu
-export const MAX_TIME = 40; // Temps maximum en secondes
+export const DEFAULT_GAME_TIME = 40; // Temps maximum en secondes
 
 // Mapping des touches spéciales pour les tuiles avec des valeurs > 10
 export const SPECIAL_KEY_MAPPING = {

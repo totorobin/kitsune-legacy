@@ -3,7 +3,8 @@ defineProps<{
   gameStarted: boolean;
   hasFirstOperand: boolean;
   showGameElements: boolean;
-  showKeyboardShortcuts: boolean;
+  showKeyboardShortcuts: boolean
+  currentOperator: string | null
 }>();
 
 const emit = defineEmits<{
@@ -34,7 +35,7 @@ const getOperatorKeyHint = (operator: string) => {
       <button 
         @click="handleOperatorClick('+')" 
         :disabled="!gameStarted || !hasFirstOperand"
-        :class="{ 'show-shortcuts': showKeyboardShortcuts && gameStarted }"
+        :class="{ 'show-shortcuts': showKeyboardShortcuts && gameStarted , selected: currentOperator === '+'}"
       >
         +
         <span v-if="showKeyboardShortcuts && gameStarted" class="key-hint">
@@ -44,7 +45,7 @@ const getOperatorKeyHint = (operator: string) => {
       <button 
         @click="handleOperatorClick('-')" 
         :disabled="!gameStarted || !hasFirstOperand"
-        :class="{ 'show-shortcuts': showKeyboardShortcuts && gameStarted }"
+        :class="{ 'show-shortcuts': showKeyboardShortcuts && gameStarted , selected: currentOperator === '-'}"
       >
         -
         <span v-if="showKeyboardShortcuts && gameStarted" class="key-hint">
@@ -54,7 +55,7 @@ const getOperatorKeyHint = (operator: string) => {
       <button 
         @click="handleOperatorClick('×')" 
         :disabled="!gameStarted || !hasFirstOperand"
-        :class="{ 'show-shortcuts': showKeyboardShortcuts && gameStarted }"
+        :class="{ 'show-shortcuts': showKeyboardShortcuts && gameStarted , selected: currentOperator === '×'}"
       >
         ×
         <span v-if="showKeyboardShortcuts && gameStarted" class="key-hint">
@@ -64,7 +65,7 @@ const getOperatorKeyHint = (operator: string) => {
       <button 
         @click="handleOperatorClick('÷')" 
         :disabled="!gameStarted || !hasFirstOperand"
-        :class="{ 'show-shortcuts': showKeyboardShortcuts && gameStarted }"
+        :class="{ 'show-shortcuts': showKeyboardShortcuts && gameStarted , selected: currentOperator === '÷'}"
       >
         ÷
         <span v-if="showKeyboardShortcuts && gameStarted" class="key-hint">
@@ -134,6 +135,12 @@ const getOperatorKeyHint = (operator: string) => {
   color: white;
   border-color: var(--kitsune-orange);
   transform: translateY(-2px);
+}
+
+.selected {
+  background-color: var(--kitsune-light-orange);
+  color: white;
+  border-color: var(--kitsune-orange);
 }
 
 .operators button:disabled {
