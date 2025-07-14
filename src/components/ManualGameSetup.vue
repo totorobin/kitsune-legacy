@@ -112,7 +112,7 @@ const gameTime = ref(40); // Temps de jeu par défaut en secondes
 
 // Props et émissions
 const emit = defineEmits<{
-  (e: 'start-game', config: { targetNumber: number, tiles: Tile[], gameTime: number }): void;
+  (e: 'start-game', config: { targetNumber: number, tiles: Tile[], time: number }): void;
 }>();
 
 
@@ -216,14 +216,15 @@ const startGame = () => {
   const tiles: Tile[] = selectedTiles.value.map((value, index) => ({
     id: index,
     value,
-    isSelected: false
+    isSelected: false,
+    isUsed: false
   }));
 
   // Émettre l'événement pour démarrer le jeu
   emit('start-game', {
     targetNumber: targetNumber.value,
     tiles,
-    gameTime: gameTime.value
+    time: gameTime.value
   });
 };
 </script>

@@ -78,10 +78,10 @@ const getKeyHint = (tile: Tile) => {
       :class="{ 
         selected: tile.isSelected, 
         'result-tile': tile.id >= 6, 
-        'show-shortcuts': showKeyboardShortcuts && !tile.isSelected && gameStarted 
+        'show-shortcuts': showKeyboardShortcuts && !tile.isSelected && gameStarted
       }"
       @click="handleTileClick(tile)"
-      :disabled="!gameStarted || tile.isSelected"
+      :disabled="!gameStarted || tile.isSelected || tile.isUsed"
       :data-value="tile.value"
     >
       {{ tile.value }}
@@ -131,12 +131,14 @@ const getKeyHint = (tile: Tile) => {
 .tiles button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+  background-color: #e0e0e0;
+  border-color: #999;
 }
 
 .tiles button.selected {
-  background-color: #e0e0e0;
-  border-color: #999;
-  opacity: 0.7;
+  background-color: var(--kitsune-light-orange);
+  color: white;
+  border-color: var(--kitsune-orange);
 }
 
 .tiles button {

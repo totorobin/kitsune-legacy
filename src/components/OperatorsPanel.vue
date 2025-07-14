@@ -3,7 +3,8 @@ defineProps<{
   gameStarted: boolean;
   hasFirstOperand: boolean;
   showGameElements: boolean;
-  showKeyboardShortcuts: boolean;
+  showKeyboardShortcuts: boolean
+  currentOperator: string | null
 }>();
 
 const emit = defineEmits<{
@@ -34,7 +35,7 @@ const getOperatorKeyHint = (operator: string) => {
       <button 
         @click="handleOperatorClick('+')" 
         :disabled="!gameStarted || !hasFirstOperand"
-        :class="{ 'show-shortcuts': showKeyboardShortcuts && gameStarted }"
+        :class="{ 'show-shortcuts': showKeyboardShortcuts && gameStarted , selected: currentOperator === '+'}"
       >
         +
         <span v-if="showKeyboardShortcuts && gameStarted" class="key-hint">
@@ -44,7 +45,7 @@ const getOperatorKeyHint = (operator: string) => {
       <button 
         @click="handleOperatorClick('-')" 
         :disabled="!gameStarted || !hasFirstOperand"
-        :class="{ 'show-shortcuts': showKeyboardShortcuts && gameStarted }"
+        :class="{ 'show-shortcuts': showKeyboardShortcuts && gameStarted , selected: currentOperator === '-'}"
       >
         -
         <span v-if="showKeyboardShortcuts && gameStarted" class="key-hint">
@@ -54,7 +55,7 @@ const getOperatorKeyHint = (operator: string) => {
       <button 
         @click="handleOperatorClick('×')" 
         :disabled="!gameStarted || !hasFirstOperand"
-        :class="{ 'show-shortcuts': showKeyboardShortcuts && gameStarted }"
+        :class="{ 'show-shortcuts': showKeyboardShortcuts && gameStarted , selected: currentOperator === '×'}"
       >
         ×
         <span v-if="showKeyboardShortcuts && gameStarted" class="key-hint">
@@ -64,7 +65,7 @@ const getOperatorKeyHint = (operator: string) => {
       <button 
         @click="handleOperatorClick('÷')" 
         :disabled="!gameStarted || !hasFirstOperand"
-        :class="{ 'show-shortcuts': showKeyboardShortcuts && gameStarted }"
+        :class="{ 'show-shortcuts': showKeyboardShortcuts && gameStarted , selected: currentOperator === '÷'}"
       >
         ÷
         <span v-if="showKeyboardShortcuts && gameStarted" class="key-hint">
@@ -130,16 +131,24 @@ const getOperatorKeyHint = (operator: string) => {
 }
 
 .operators button:hover:not(:disabled) {
-  background-color: var(--kitsune-light-orange);
-  color: white;
   border-color: var(--kitsune-orange);
   transform: translateY(-2px);
+  box-shadow: 0 3px 6px rgba(0,0,0,0.1);
 }
 
 .operators button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+  background-color: #e0e0e0;
+  border-color: #999;
 }
+
+.operators button.selected {
+  background-color: var(--kitsune-light-orange);
+  color: white;
+  border-color: var(--kitsune-orange);
+}
+
 
 .operators .undo-button {
   background-color: #f0f0f0;
@@ -150,12 +159,6 @@ const getOperatorKeyHint = (operator: string) => {
 .control-button {
   background-color: #f0f0f0;
   color: #444;
-}
-
-.operators .undo-button:hover:not(:disabled),
-.operators .control-button:hover:not(:disabled) {
-  background-color: var(--kitsune-light-orange);
-  color: white;
 }
 
 /* Style desktop: afficher sur une seule ligne */

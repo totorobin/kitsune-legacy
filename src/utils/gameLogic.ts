@@ -14,6 +14,7 @@ export const generateRandomTiles = (): Tile[] => {
     selectedTiles.push({
       value: possibleTiles[randomIndex],
       isSelected: false,
+      isUsed: false,
       id: i
     });
     possibleTiles.splice(randomIndex, 1);
