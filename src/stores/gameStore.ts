@@ -65,7 +65,7 @@ export const useGameStore = () => {
                 state.timeLeft--;
             } else {
                 if (state.timer) clearInterval(state.timer);
-                if (!solutionFinder.isSearching)
+                if (!solutionFinder.isSearching.value)
                     calculateWin()
                 else if (state.state === GameStates.IN_PROGRESS)
                     state.state = GameStates.TIME_UP;

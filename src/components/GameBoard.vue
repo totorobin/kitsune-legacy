@@ -235,14 +235,14 @@ onUnmounted(() => {
 
       <TilesGrid 
         :tiles="tiles"
-        :gameStarted="state === GameStates.IN_PROGRESS || state === GameStates.TIME_UP"
+        :gameStarted="state === GameStates.IN_PROGRESS || state === GameStates.LOSS"
         :showGameElements="showGameElements"
         :showKeyboardShortcuts="showKeyboardShortcuts && !isTouchDevice"
         @tile-click="handleTileClick"
       />
 
       <OperatorsPanel
-        :gameStarted="state === GameStates.IN_PROGRESS || state === GameStates.TIME_UP"
+        :gameStarted="state === GameStates.IN_PROGRESS || state === GameStates.LOSS"
         :hasFirstOperand="tiles.some(t => t.isSelected)"
         :showGameElements="showGameElements"
         :showKeyboardShortcuts="showKeyboardShortcuts && !isTouchDevice"
