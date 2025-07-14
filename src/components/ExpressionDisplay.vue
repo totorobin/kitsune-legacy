@@ -12,7 +12,6 @@ defineProps<{
       {{ op }}
     </div>
     <div v-if="expression" class="current-expression">{{ expression }}</div>
-    <div v-else-if="operationsHistory.length === 0" class="current-expression">0</div>
   </div>
 </template>
 

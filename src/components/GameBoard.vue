@@ -39,7 +39,6 @@ const showSolutions = computed(() => state.value != GameStates.NOT_STARTED && st
 const showGameElements = computed(() => state.value !== GameStates.NOT_STARTED )
 // État pour le mode de jeu
 const gameMode = ref<GameMode>('auto');
-const showModeSelector = ref(true);
 const showManualSetup = ref(false);
 
 // État pour l'affichage des raccourcis clavier
@@ -51,7 +50,6 @@ const isTouchDevice = ref(false); // Détection des appareils tactiles
 // Sélectionner un mode de jeu
 const selectGameMode = (mode: GameMode) => {
   gameMode.value = mode;
-  showModeSelector.value = false;
 
   if (mode === 'auto') {
     // Mode automatique: démarrer directement une nouvelle partie
@@ -65,7 +63,6 @@ const selectGameMode = (mode: GameMode) => {
 
 // Gestion des entrées pour les opérateurs
 const handleOperatorInput = (value: string) => {
-  if (state.value !== GameStates.IN_PROGRESS) return;
 
   if (value === 'C') {
     // Réinitialiser l'expression et l'état de l'opération
@@ -87,14 +84,13 @@ const handleOperatorInput = (value: string) => {
 
 // Gestion des clics sur les tuiles numériques
 const handleTileClick = (tile: Tile) => {
-  if (state.value !== GameStates.IN_PROGRESS || tile.isSelected) return;
+  if (tile.isSelected) return;
 
   selectTile(tile);
 };
 
 // Gestionnaire d'événements pour les touches du clavier
 const handleKeydown = (event: KeyboardEvent) => {
-  if (state.value !== GameStates.IN_PROGRESS) return;
 
   // Gestion des touches numériques (1-9, 0)
   if (/^[0-9]$/.test(event.key)) {
@@ -223,7 +219,10 @@ onUnmounted(() => {
     <!-- Configuration manuelle du jeu -->
     <ManualGameSetup 
       v-if="showManualSetup" 
-      @start-game="newGame"
+      @start-game="(options) => {
+        newGame(options);
+        showManualSetup = false
+      }"
     />
 
     <div class="game-area" v-if="state !== GameStates.NOT_STARTED">
@@ -236,14 +235,14 @@ onUnmounted(() => {
 
       <TilesGrid 
         :tiles="tiles"
-        :gameStarted="state === GameStates.IN_PROGRESS"
+        :gameStarted="state === GameStates.IN_PROGRESS || state === GameStates.TIME_UP"
         :showGameElements="showGameElements"
         :showKeyboardShortcuts="showKeyboardShortcuts && !isTouchDevice"
         @tile-click="handleTileClick"
       />
 
       <OperatorsPanel
-        :gameStarted="state === GameStates.IN_PROGRESS"
+        :gameStarted="state === GameStates.IN_PROGRESS || state === GameStates.TIME_UP"
         :hasFirstOperand="tiles.some(t => t.isSelected)"
         :showGameElements="showGameElements"
         :showKeyboardShortcuts="showKeyboardShortcuts && !isTouchDevice"
@@ -269,7 +268,7 @@ onUnmounted(() => {
 
     <!-- Sélecteur de mode de jeu -->
     <GameModeSelector
-        v-if="showModeSelector && state !== GameStates.IN_PROGRESS"
+        v-if="!showManualSetup && state !== GameStates.IN_PROGRESS"
         :initialMode="gameMode"
         @mode-selected="selectGameMode"
     />

@@ -49,7 +49,7 @@ export const useSolutionFinder = () => {
         // Envoyer les données au worker pour commencer la recherche
         if (state.workerState === 'available') {
             state.timeStart = Date.now()
-            console.log('start Searchinf Solution')
+            console.log('start Searching Solution for ', tiles, ' with target ', targetNumber, '')
             state.workerState = 'calculating'
             state.minDistance = Number.MAX_SAFE_INTEGER
             state.solutions = []
@@ -58,6 +58,8 @@ export const useSolutionFinder = () => {
                 targetNumber: targetNumber
             });
             state.callbackFunction = callback ?? (() => {})
+        } else {
+            console.log('solutionWorker not available : Search already in progress')
         }
     }
 

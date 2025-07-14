@@ -38,17 +38,19 @@ export const useGameStore = () => {
     clearInterval(state.timer);
 
     const newGame = (config: { targetNumber?: number, tiles?: Tile[], time?: number }, resolve = false) => {
-        Object.assign(state, initialState)
+        Object.assign(state, { ...initialState})
         state.targetNumber = config.targetNumber || generateTargetNumber();
         state.tiles = config.tiles || generateRandomTiles();
-        console.log('new game', state.tiles, state.targetNumber)
         if (config.time) {
             state.timeLeft = config.time
             state.totalTime = config.time
         }
         state.state = GameStates.IN_PROGRESS;
+        console.log('new game', state)
+        state.operationsHistory = [];
         if (!resolve)
             startTimer();
+
         solutionFinder.search([ ...state.tiles.map((t: Tile) => t.value)], state.targetNumber, () => {
             if (state.state === GameStates.TIME_UP && !resolve)
                 calculateWin()
@@ -73,8 +75,8 @@ export const useGameStore = () => {
 
     const calculateWin = () => {
         // Vérifier si le joueur a trouvé le meilleur résultat possible
-        const lastTile = state.tiles.find((t: Tile) => t.isSelected) as Tile;
-        if (lastTile !== null) {
+        const lastTile : Tile | undefined = state.tiles.find((t: Tile) => t.isSelected);
+        if (lastTile) {
             const bestPossibleDistance = solutionFinder.foundSolutions.value[0].distance;
             const playerDistance = Math.abs(lastTile.value - state.targetNumber);
 
