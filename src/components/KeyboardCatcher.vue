@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {onMounted, onUnmounted, ref, watch} from "vue";
-import {Tile} from "../types/game";
+import { type Tile} from "../types/game";
 
 const props = defineProps<{
   tiles: Tile[];
@@ -8,7 +8,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'tile-click' : [ tile: Tile]
-  'operator-click' : [ operator: String ]
+  'operator-click' : [ operator: string ]
 
 }>()
 
