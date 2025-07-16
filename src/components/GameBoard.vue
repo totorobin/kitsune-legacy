@@ -1,6 +1,6 @@
 
 <script setup lang="ts">
-import {ref, onMounted, onUnmounted, computed } from 'vue';
+import {ref, computed } from 'vue';
 import { type Tile, GameStates } from '../types/game';
 
 // Composants
@@ -13,6 +13,7 @@ import SolutionsDisplay from './SolutionsDisplay.vue';
 import GameModeSelector from './GameModeSelector.vue';
 import ManualGameSetup from './ManualGameSetup.vue';
 import {useGameStore} from "../stores/gameStore";
+import KeyboardCatcher from "./KeyboardCatcher.vue";
 
 // Types pour les modes de jeu
 type GameMode = 'auto' | 'manual';
@@ -41,9 +42,6 @@ const showGameElements = computed(() => state.value !== GameStates.NOT_STARTED )
 const gameMode = ref<GameMode>('auto');
 const showManualSetup = ref(false);
 
-// État pour l'affichage des raccourcis clavier
-const showKeyboardShortcuts = ref(true); // Par défaut, afficher les raccourcis
-const isTouchDevice = ref(false); // Détection des appareils tactiles
 
 
 
@@ -89,119 +87,10 @@ const handleTileClick = (tile: Tile) => {
   selectTile(tile);
 };
 
-// Gestionnaire d'événements pour les touches du clavier
-const handleKeydown = (event: KeyboardEvent) => {
-
-  // Gestion des touches numériques (1-9, 0)
-  if (/^[0-9]$/.test(event.key)) {
-    const numericValue = parseInt(event.key);
-    // Cas spécial pour la touche 0 qui doit sélectionner une tuile 10
-    const tileValue = numericValue === 0 ? 10 : numericValue;
-    // Chercher une tuile non sélectionnée avec cette valeur
-    const matchingTile = tiles.value.find(tile =>
-      tile.value === tileValue && !tile.isSelected
-    );
-
-    if (matchingTile) {
-      handleTileClick(matchingTile);
-    }
-  }
-
-  // Gestion des touches spéciales pour 25, 50, 75, 100
-  if (event.key === 'a' || event.key === 'A') { // Pour 25
-    const tile25 = tiles.value.find(tile => tile.value === 25 && !tile.isSelected);
-    if (tile25) handleTileClick(tile25);
-  }
-  if (event.key === 'z' || event.key === 'Z') { // Pour 50
-    const tile50 = tiles.value.find(tile => tile.value === 50 && !tile.isSelected);
-    if (tile50) handleTileClick(tile50);
-  }
-  if (event.key === 'e' || event.key === 'E') { // Pour 75
-    const tile75 = tiles.value.find(tile => tile.value === 75 && !tile.isSelected);
-    if (tile75) handleTileClick(tile75);
-  }
-  if (event.key === 'r' || event.key === 'R') { // Pour 100
-    const tile100 = tiles.value.find(tile => tile.value === 100 && !tile.isSelected);
-    if (tile100) handleTileClick(tile100);
-  }
-
-  // Gestion des touches pour les tuiles résultats (f, g, h, j, k, l, m)
-  // Ces touches permettent de sélectionner les tuiles résultats en fonction de l'ordre de création
-  const resultKeyMap = ['f', 'g', 'h', 'j', 'k', 'l', 'm'];
-  const lowerKey = event.key.toLowerCase();
-
-  if (resultKeyMap.includes(lowerKey)) {
-    // Trouver l'index de la touche dans le tableau des touches de résultat
-    const keyIndex = resultKeyMap.indexOf(lowerKey);
-
-    // Obtenir toutes les tuiles résultats (ID >= 6) qui ne sont pas sélectionnées
-    const resultTiles = tiles.value.filter(tile => tile.id >= 6 && !tile.isSelected);
-
-    // Si nous avons suffisamment de tuiles résultats
-    if (keyIndex < resultTiles.length) {
-      // Trier les tuiles par ID pour maintenir l'ordre de création
-      const sortedResultTiles = resultTiles.sort((a, b) => a.id - b.id);
-      // Sélectionner la tuile correspondante
-      handleTileClick(sortedResultTiles[keyIndex]);
-    }
-  }
-
-  // Gestion des opérateurs
-  if (event.key === '+') {
-    handleOperatorInput('+');
-  } else if (event.key === '-') {
-    handleOperatorInput('-');
-  } else if (event.key === '*' || event.key === 'x' || event.key === 'X') {
-    handleOperatorInput('×');
-  } else if (event.key === '/' || event.key === ':') {
-    handleOperatorInput('÷');
-  } else if (event.key === 'c' || event.key === 'C') {
-    handleOperatorInput('C');
-  } else if (event.key === 'Backspace' || event.key === 'u' || event.key === 'U') {
-    handleOperatorInput('U');
-  }
-
-  // Ajout de raccourcis supplémentaires
-
-  // Espace pour sélectionner la première tuile disponible
-  if (event.key === ' ' || event.key === 'Space') {
-    const firstAvailableTile = tiles.value.find((tile: Tile) => !tile.isSelected);
-    if (firstAvailableTile) {
-      handleTileClick(firstAvailableTile);
-    }
-  }
-
-  // Échap pour réinitialiser (comme la touche C)
-  if (event.key === 'Escape') {
-    handleOperatorInput('C');
-  }
-
-};
-
-// Fonction pour basculer l'affichage des raccourcis clavier
-const toggleKeyboardShortcuts = () => {
-  showKeyboardShortcuts.value = !showKeyboardShortcuts.value;
-};
-
-// Ajout et suppression des écouteurs d'événements
-onMounted(() => {
-
-  // Détection des appareils tactiles
-  isTouchDevice.value = ('ontouchstart' in window) || 
-                        (navigator.maxTouchPoints > 0);
-
-  if(!isTouchDevice.value) {
-    window.addEventListener('keydown', handleKeydown);
-  }
-});
-
-onUnmounted(() => {
-  window.removeEventListener('keydown', handleKeydown);
-});
-
 </script>
 
 <template>
+  <KeyboardCatcher :tiles="tiles" @tile-click="selectTile" @operator-click="handleOperatorInput" v-slot="slotProps" >
   <div class="game-board">
     <GameHeader 
       v-if="state !== GameStates.NOT_STARTED"
@@ -226,18 +115,12 @@ onUnmounted(() => {
     />
 
     <div class="game-area" v-if="state !== GameStates.NOT_STARTED">
-      <!-- Bouton pour afficher/masquer les raccourcis clavier (visible uniquement sur desktop) -->
-      <div v-if="!isTouchDevice && state === GameStates.IN_PROGRESS" class="shortcuts-toggle">
-        <button @click="toggleKeyboardShortcuts" class="toggle-btn">
-          {{ showKeyboardShortcuts ? 'Masquer raccourcis' : 'Afficher raccourcis' }}
-        </button>
-      </div>
 
       <TilesGrid 
         :tiles="tiles"
         :gameStarted="state === GameStates.IN_PROGRESS || state === GameStates.LOSS"
         :showGameElements="showGameElements"
-        :showKeyboardShortcuts="showKeyboardShortcuts && !isTouchDevice"
+        :showKeyboardShortcuts="false"
         @tile-click="handleTileClick"
       />
 
@@ -245,13 +128,13 @@ onUnmounted(() => {
         :gameStarted="state === GameStates.IN_PROGRESS || state === GameStates.LOSS"
         :hasFirstOperand="tiles.some(t => t.isSelected)"
         :showGameElements="showGameElements"
-        :showKeyboardShortcuts="showKeyboardShortcuts && !isTouchDevice"
+        :showKeyboardShortcuts="false"
         @operator-click="handleOperatorInput"
         :current-operator="operator"
       />
 
       <ExpressionDisplay
-        :expression="''"
+        :expression="(tiles.find(t => t.isSelected) ? tiles.find(t => t.isSelected)?.value + ' ' : '') + ( operator ? operator + ' ' : '') + slotProps.currentNumber"
         :operationsHistory="operationsHistory"
         :showGameElements="showGameElements"
       />
@@ -273,6 +156,7 @@ onUnmounted(() => {
         @mode-selected="selectGameMode"
     />
   </div>
+  </KeyboardCatcher>
 </template>
 
 <style scoped>
@@ -292,27 +176,6 @@ onUnmounted(() => {
   gap: 20px;
 }
 
-.shortcuts-toggle {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 5px;
-}
-
-.toggle-btn {
-  font-size: 14px;
-  padding: 6px 12px;
-  background-color: var(--kitsune-light);
-  border: 1px solid var(--kitsune-orange);
-  color: var(--kitsune-dark);
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.toggle-btn:hover {
-  background-color: var(--kitsune-light-orange);
-}
-
 /* Styles responsifs pour mobile */
 @media (max-width: 480px) {
   .game-board {
@@ -326,11 +189,6 @@ onUnmounted(() => {
 
   .game-area {
     gap: 10px;
-  }
-
-  .start-button {
-    padding: 12px;
-    font-size: 16px;
   }
 }
 </style>
