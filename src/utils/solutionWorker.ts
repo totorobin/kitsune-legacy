@@ -75,10 +75,22 @@ export class Multiplication extends Operation {
         this.tiles = tiles.flatMap(t => t instanceof Multiplication ? t.tiles : t).sort((a, b) => b.weightValue() - a.weightValue())
     }
 
+    divide(tile: Operation) {
+        this.value /= tile.value
+        this.tilesValues.push(...tile.tilesValues)
+        this.tiles.push(...(tile instanceof Multiplication ? tile.tiles.map(tile => {
+            return tile.clone().toDivisor()
+        }) : [tile.clone().toDivisor()]))
+        this.tiles.sort((a, b) => b.weightValue() - a.weightValue())
+        return this
+    }
+
     toString() {
         return this.tiles.reduce((acc, curr, index) => {
             const s = curr instanceof Tile ? curr.toString() : '(' + curr.toString() + ')'
             if (index === 0) return s
+            if (curr.isDivisor())
+                return acc + ' / ' + s
             return acc + ' x ' + s
         }, '')
     }
@@ -136,35 +148,6 @@ export class Addition extends Operation {
         return tile
     }
 }
-
-export class Division extends Operation {
-    value: number
-    left: Operation
-    right: Operation
-
-    constructor(left: Operation, rigth: Operation) {
-        super([left, rigth])
-        this.operator = '÷'
-        this.value = left.value / rigth.value
-        this.left = left
-        this.right = rigth
-    }
-
-    toString(): string {
-        return ((this.left instanceof Tile || this.left instanceof Multiplication) ? this.left.toString() : '(' + this.left.toString() + ')') + ' / ' + (this.right instanceof Tile ? this.right.toString() : '(' + this.right.toString() + ')')
-    }
-
-    weightValue() {
-        return (this.isNegatif() ? -1 : 1) * this.value + 0.2
-    }
-
-    clone() {
-        const tile = new Division(this.left, this.right)
-        tile.transform = this.transform
-        return tile
-    }
-}
-
 
 export interface Solution {
     result: number,
@@ -276,7 +259,8 @@ function createOperations(a: Operation, b: Operation): Operation[] {
         if (b instanceof Multiplication && b.tiles.some(t => t.value === a.value)) {
             // on ne divise pas par a si on déjà a multiplié par a
         } else {
-            operations.push(new Division(b, a));
+            // la division est une multiplication avec a comme diviseur
+            operations.push(new Multiplication([b]).divide(a));
         }
     }
 

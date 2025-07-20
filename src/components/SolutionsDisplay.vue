@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // Interface Solution pour la compatibilité
 import { computed, ref, watch } from 'vue';
-import type { Solution } from '../utils/solutionFinder3';
+import type { Solution } from '../utils/solutionWorker';
 
 const props = withDefaults(defineProps<{
   solutions: Solution[];

@@ -1,6 +1,6 @@
-import {type Solution, type WorkerResponse} from "./solutionFinder3.ts";
+import {type Solution, type WorkerResponse} from "./solutionWorker.ts";
 import {computed, reactive} from "vue";
-import SolutionWorker from './solutionFinder3?worker';
+import SolutionWorker from './solutionWorker?worker';
 
 // Worker for solution finding
 const solutionWorker = new SolutionWorker();
