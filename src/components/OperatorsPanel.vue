@@ -1,9 +1,9 @@
 <script setup lang="ts">
+import {onMounted, ref} from "vue";
+
 defineProps<{
   gameStarted: boolean;
   hasFirstOperand: boolean;
-  showGameElements: boolean;
-  showKeyboardShortcuts: boolean
   currentOperator: string | null
 }>();
 
@@ -15,62 +15,45 @@ const handleOperatorClick = (value: string) => {
   emit('operator-click', value);
 };
 
-// Fonction pour obtenir le raccourci clavier d'un opérateur
-const getOperatorKeyHint = (operator: string) => {
-  switch (operator) {
-    case '+': return '+';
-    case '-': return '-';
-    case '×': return '*';
-    case '÷': return '/';
-    case 'C': return 'C';
-    case 'U': return '⌫';
-    default: return '';
-  }
-};
+
+const showKeyboardShortcuts = ref(false);
+onMounted(() => {
+  // Détection des appareils tactiles
+  showKeyboardShortcuts.value = ('ontouchstart' in window) ||
+      (navigator.maxTouchPoints > 0);
+});
 </script>
 
 <template>
-  <div class="operators" v-if="showGameElements">
+  <div class="operators">
     <div class="operators-main">
       <button 
         @click="handleOperatorClick('+')" 
         :disabled="!gameStarted || !hasFirstOperand"
-        :class="{ 'show-shortcuts': showKeyboardShortcuts && gameStarted , selected: currentOperator === '+'}"
+        :class="{ selected: currentOperator === '+'}"
       >
         +
-        <span v-if="showKeyboardShortcuts && gameStarted" class="key-hint">
-          {{ getOperatorKeyHint('+') }}
-        </span>
       </button>
       <button 
         @click="handleOperatorClick('-')" 
         :disabled="!gameStarted || !hasFirstOperand"
-        :class="{ 'show-shortcuts': showKeyboardShortcuts && gameStarted , selected: currentOperator === '-'}"
+        :class="{ selected: currentOperator === '-'}"
       >
         -
-        <span v-if="showKeyboardShortcuts && gameStarted" class="key-hint">
-          {{ getOperatorKeyHint('-') }}
-        </span>
       </button>
       <button 
         @click="handleOperatorClick('×')" 
         :disabled="!gameStarted || !hasFirstOperand"
-        :class="{ 'show-shortcuts': showKeyboardShortcuts && gameStarted , selected: currentOperator === '×'}"
+        :class="{  selected: currentOperator === '×'}"
       >
         ×
-        <span v-if="showKeyboardShortcuts && gameStarted" class="key-hint">
-          {{ getOperatorKeyHint('×') }}
-        </span>
       </button>
       <button 
         @click="handleOperatorClick('÷')" 
         :disabled="!gameStarted || !hasFirstOperand"
-        :class="{ 'show-shortcuts': showKeyboardShortcuts && gameStarted , selected: currentOperator === '÷'}"
+        :class="{ selected: currentOperator === '÷'}"
       >
         ÷
-        <span v-if="showKeyboardShortcuts && gameStarted" class="key-hint">
-          {{ getOperatorKeyHint('÷') }}
-        </span>
       </button>
     </div>
     <div class="operators-controls">
@@ -82,7 +65,7 @@ const getOperatorKeyHint = (operator: string) => {
       >
         C
         <span v-if="showKeyboardShortcuts && gameStarted" class="key-hint">
-          {{ getOperatorKeyHint('C') }}
+          C
         </span>
       </button>
       <button 
@@ -94,7 +77,7 @@ const getOperatorKeyHint = (operator: string) => {
       >
         ↩
         <span v-if="showKeyboardShortcuts && gameStarted" class="key-hint">
-          {{ getOperatorKeyHint('U') }}
+         ⌫
         </span>
       </button>
     </div>

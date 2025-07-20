@@ -9,7 +9,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { findSolution } from '../../src/utils/solutionFinder3';
+import { findSolution } from '../../src/utils/solutionWorker';
 
 describe('solutionFinder', () => {
   describe('findSolutions', () => {

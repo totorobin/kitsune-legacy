@@ -1,7 +1,8 @@
 <script setup lang="ts">
 // Interface Solution pour la compatibilité
 import { computed, ref, watch } from 'vue';
-import type { Solution } from '../utils/solutionFinder3';
+import type { Solution } from '../utils/solutionWorker';
+import LoadingSpinner from "./LoadingSpinner.vue";
 
 const props = withDefaults(defineProps<{
   solutions: Solution[];
@@ -56,6 +57,7 @@ watch(() => props.solutions, (newSolutions) => {
   <div v-if="showSolutions" class="solutions-display">
     <h2>Solutions</h2>
 
+    <LoadingSpinner v-if="isCalculating" text="Recherche des solutions en cours"></LoadingSpinner>
     <!-- Aucune solution trouvée (seulement si le calcul est terminé) -->
     <div v-if="solutions.length === 0" class="no-solutions">
       Aucune solution trouvée avec ces nombres.

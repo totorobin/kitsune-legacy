@@ -114,21 +114,19 @@ const handleTileClick = (tile: Tile) => {
       }"
     />
 
-    <div class="game-area" v-if="state !== GameStates.NOT_STARTED">
+    <div class="game-area" v-if="state !== GameStates.NOT_STARTED && !showManualSetup">
 
       <TilesGrid 
         :tiles="tiles"
         :gameStarted="state === GameStates.IN_PROGRESS || state === GameStates.LOSS"
-        :showGameElements="showGameElements"
-        :showKeyboardShortcuts="false"
+        v-if="showGameElements"
         @tile-click="handleTileClick"
       />
 
       <OperatorsPanel
         :gameStarted="state === GameStates.IN_PROGRESS || state === GameStates.LOSS"
         :hasFirstOperand="tiles.some(t => t.isSelected)"
-        :showGameElements="showGameElements"
-        :showKeyboardShortcuts="false"
+        v-if="showGameElements"
         @operator-click="handleOperatorInput"
         :current-operator="operator"
       />
@@ -136,7 +134,7 @@ const handleTileClick = (tile: Tile) => {
       <ExpressionDisplay
         :expression="(tiles.find(t => t.isSelected) ? tiles.find(t => t.isSelected)?.value + ' ' : '') + ( operator ? operator + ' ' : '') + slotProps.currentNumber"
         :operationsHistory="operationsHistory"
-        :showGameElements="showGameElements"
+        v-if="showGameElements"
       />
 
       <SolutionsDisplay
@@ -147,7 +145,6 @@ const handleTileClick = (tile: Tile) => {
       />
 
     </div>
-
 
     <!-- Sélecteur de mode de jeu -->
     <GameModeSelector
