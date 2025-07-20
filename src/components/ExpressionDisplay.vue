@@ -2,12 +2,11 @@
 defineProps<{
   expression: string;
   operationsHistory: string[];
-  showGameElements: boolean;
 }>();
 </script>
 
 <template>
-  <div class="expression" v-if="showGameElements">
+  <div class="expression">
     <div v-for="(op, index) in operationsHistory" :key="'history-'+index" class="history-item">
       {{ op }}
     </div>

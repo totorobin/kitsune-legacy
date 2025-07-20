@@ -79,7 +79,7 @@
         <input 
           type="range" 
           v-model.number="gameTime" 
-          min="10" 
+          min="10"
           max="120" 
           step="5"
         />
