@@ -158,9 +158,6 @@ export interface Solution {
 
 let minDistance = Number.MAX_SAFE_INTEGER;
 
-export function tileToSolution(tile: Tile, targetNumber: number): Solution {
-    return ({ result: tile.value, distance: Math.abs(tile.value - targetNumber), operation: `${tile.toString()} = ${tile.value}`, nbTiles: tile.tilesValues.length})
-}
 
 export function findSolution(tiles: Operation[], targetNumber: number) {
 
