@@ -19,8 +19,7 @@ const handleOperatorClick = (value: string) => {
 const showKeyboardShortcuts = ref(false);
 onMounted(() => {
   // Détection des appareils tactiles
-  showKeyboardShortcuts.value = ('ontouchstart' in window) ||
-      (navigator.maxTouchPoints > 0);
+  showKeyboardShortcuts.value = !(('ontouchstart' in window) || (navigator.maxTouchPoints > 0));
 });
 </script>
 
