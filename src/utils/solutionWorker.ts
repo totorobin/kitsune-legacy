@@ -53,7 +53,7 @@ export class Tile extends Operation {
     }
 
     weightValue() {
-        return (this.isNegatif() ? -1 : 1) * this.value
+        return (this.isNegatif() ? -1 : 1) * (this.isDivisor() ? 1/this.value : this.value)
     }
 
     clone(): Tile {
@@ -96,7 +96,7 @@ export class Multiplication extends Operation {
     }
 
     weightValue() {
-        return (this.isNegatif() ? -1 : 1) * this.value + (0.1 * this.tiles.length)
+        return (this.isNegatif() ? -1 : 1) * (this.isDivisor() ? 1/this.value : this.value) + (0.1 * this.tiles.length)
     }
 
     clone() {
@@ -129,7 +129,7 @@ export class Addition extends Operation {
     }
 
     weightValue() {
-        return (this.isNegatif() ? -1 : 1) * this.value + (0.1 * this.tiles.length)
+        return (this.isNegatif() ? -1 : 1) * (this.isDivisor() ? 1/this.value : this.value) + (0.1 * this.tiles.length)
     }
 
     toString() {
